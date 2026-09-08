@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
 	PageShell,
 	PageShellContent,
 	PageShellDescription,
 	PageShellHeader,
 	PageShellHeading,
+	PageShellLoading,
 	PageShellTitle,
 } from "@/components/page-shell";
 import { requireSession } from "@/lib/session";
@@ -14,9 +16,7 @@ export const metadata: Metadata = {
 	title: "Import",
 };
 
-export default async function ImportSettingsPage() {
-	await requireSession();
-
+export default function ImportSettingsPage() {
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
@@ -32,8 +32,16 @@ export default async function ImportSettingsPage() {
 			</PageShellHeader>
 
 			<PageShellContent className="min-h-0">
-				<ImportForm />
+				<Suspense fallback={<PageShellLoading />}>
+					<Import />
+				</Suspense>
 			</PageShellContent>
 		</PageShell>
 	);
+}
+
+async function Import() {
+	await requireSession();
+
+	return <ImportForm />;
 }
