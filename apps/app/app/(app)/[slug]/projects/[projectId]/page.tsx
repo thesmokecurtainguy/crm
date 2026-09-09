@@ -10,32 +10,34 @@ export const metadata: Metadata = {
 	title: "Project",
 };
 
-export default async function ProjectPage({
+export default function ProjectPage({
 	params,
-}: {
-	params: Promise<{ slug: string; projectId: string }>;
-}) {
-	const { projectId } = await params;
+}: PageProps<"/[slug]/projects/[projectId]">) {
 	return (
 		<PageShell className="min-h-0">
 			<Suspense fallback={<PageShellLoading />}>
-				<Project id={projectId} />
+				<Project params={params} />
 			</Suspense>
 		</PageShell>
 	);
 }
 
-async function Project({ id }: { id: string }) {
+async function Project({
+	params,
+}: Pick<PageProps<"/[slug]/projects/[projectId]">, "params">) {
+	const { projectId } = await params;
 	await requireSession();
 	const trpc = getServerTrpc();
 	const queryClient = getServerQueryClient();
 	await Promise.all([
-		queryClient.prefetchQuery(trpc.projects.byId.queryOptions({ id })),
+		queryClient.prefetchQuery(
+			trpc.projects.byId.queryOptions({ id: projectId }),
+		),
 		queryClient.prefetchQuery(trpc.users.list.queryOptions()),
 	]);
 	return (
 		<HydrateClient>
-			<ProjectDetail id={id} />
+			<ProjectDetail id={projectId} />
 		</HydrateClient>
 	);
 }
