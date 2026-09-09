@@ -26,6 +26,7 @@ import { enrichmentQueueInput } from "@crm/validation/enrichment-queue";
 import { fieldListInput, fieldListOutput, fieldByKeyInput, serializedFieldOutput, fieldEntityInput, fieldFiltersOutput, fieldIdInput, fieldCoverageOutput, fieldCreateInput, fieldUpdateArgs, fieldReorderInput, fieldReorderOutput, fieldDeleteOutput, fieldBackfillOutput } from "../fields/fields.contracts";
 import { googleConnectionStatusOutput, setAutoCreateInput, suppressDomainInput, suppressDomainOutput, threadInput, emailThreadOutput, calendarEventInput, calendarEventOutput } from "../google/google.contracts";
 import { purgeSyncedDataOutput, revokeAccessOutput, microsoftConnectionStatusOutput, setOutlookAutoCreateInput } from "../microsoft/microsoft.contracts";
+import { projectListInput, projectListOutput, projectOptionsInput, projectOptionOutput, projectIdInput, projectDetailOutput, projectCreateInput, projectSummaryOutput, projectUpsertInput, projectUpdateArgs, projectTriageInput, projectArchiveResultOutput, projectBulkInput, projectBulkResultOutput } from "../projects/projects.contracts";
 import { savedViewListInput, savedViewListOutput, savedViewCreateInput, savedViewOutput, savedViewUpdateArgs, savedViewIdInput, savedViewDeleteOutput } from "../saved-views/saved-views.contracts";
 import { agentModelOutput, modelCatalogOutput, setAgentModelInput, researchKeyOutput, setResearchKeyInput, archiveRetentionOutput, setArchiveRetentionDaysInput } from "../settings/settings.contracts";
 import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannelsOutput, slackJoinChannelInput, slackJoinChannelOutput, slackRefreshPeopleOutput, slackCreateChannelInput, slackCreateChannelOutput, slackDisconnectOutput } from "../slack/slack.contracts";
@@ -574,6 +575,48 @@ const appRouter = t.router({
     setAutoCreate: publicProcedure
       .input(setOutlookAutoCreateInput)
       .output(microsoftConnectionStatusOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
+    }),
+  projects: t.router({
+    list: publicProcedure
+      .input(projectListInput)
+      .output(projectListOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    options: publicProcedure
+      .input(projectOptionsInput)
+      .output(projectOptionOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    byId: publicProcedure
+      .input(projectIdInput)
+      .output(projectDetailOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    create: publicProcedure
+      .input(projectCreateInput)
+      .output(projectSummaryOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    upsert: publicProcedure
+      .input(projectUpsertInput)
+      .output(projectSummaryOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    update: publicProcedure
+      .input(projectUpdateArgs)
+      .output(projectDetailOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    triage: publicProcedure
+      .input(projectTriageInput)
+      .output(projectDetailOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    archive: publicProcedure
+      .input(projectIdInput)
+      .output(projectArchiveResultOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    restore: publicProcedure
+      .input(projectIdInput)
+      .output(projectArchiveResultOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    bulkArchive: publicProcedure
+      .input(projectBulkInput)
+      .output(projectBulkResultOutput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
     }),
   savedViews: t.router({

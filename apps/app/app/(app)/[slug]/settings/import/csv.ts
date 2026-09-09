@@ -1,7 +1,3 @@
-/**
- * Minimal RFC 4180 CSV parser. Handles quoted fields, escaped quotes,
- * embedded newlines, and CRLF. No dependency so the app build stays as-is.
- */
 export function parseCsv(text: string): string[][] {
 	const rows: string[][] = [];
 	let row: string[] = [];

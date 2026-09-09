@@ -26,6 +26,7 @@ model User {
   ownedCompanies Company[]           @relation("CompanyOwner")
   ownedContacts  Contact[]           @relation("ContactOwner")
   ownedDeals     Deal[]              @relation("DealOwner")
+  ownedProjects  Project[]           @relation("ProjectOwner")
   activities     Activity[]          @relation("ActivityAuthor")
   mailboxSyncs   MailboxSync[]
   factDecisions  ContactFact[]       @relation("FactDecider")
@@ -328,6 +329,9 @@ model Company {
   emailThreads   EmailThread[]
   calendarEvents CalendarEvent[]
   fieldValues    FieldValue[]
+  architectOn    Project[]           @relation("ProjectArchitect")
+  contractorOn   Project[]           @relation("ProjectGeneralContractor")
+  developerOn    Project[]           @relation("ProjectDeveloper")
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -939,6 +943,9 @@ model Deal {
   lastActivityAt DateTime?
   archivedAt     DateTime?
 
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
   contacts    DealContact[]
   activities  Activity[]
   fieldValues FieldValue[]
@@ -947,6 +954,7 @@ model Deal {
 
   @@index([companyId])
   @@index([ownerId])
+  @@index([projectId])
   @@index([stage])
   @@index([expectedCloseDate])
   @@index([lastActivityAt])
@@ -954,6 +962,102 @@ model Deal {
   @@index([currency])
   @@index([archivedAt])
   @@map("deal")
+}
+
+model Project {
+  id   String @id @default(cuid())
+  name String
+
+  externalId String?      @unique
+  source     RecordSource @default(MANUAL)
+
+  address   String?
+  city      String?
+  stateCode String?
+  county    String?
+  category  String?
+
+  stage      ProjectStage @default(UNKNOWN)
+  leadStatus LeadStatus   @default(LEAD)
+  watchUntil DateTime?
+
+  value     Decimal?  @db.Decimal(14, 2)
+  floors    Int?
+  units     Int?
+  floorArea Int?
+  startDate DateTime?
+  bidDate   DateTime?
+
+  architectId String?
+  architect   Company? @relation("ProjectArchitect", fields: [architectId], references: [id], onDelete: SetNull)
+  gcId        String?
+  gc          Company? @relation("ProjectGeneralContractor", fields: [gcId], references: [id], onDelete: SetNull)
+  developerId String?
+  developer   Company? @relation("ProjectDeveloper", fields: [developerId], references: [id], onDelete: SetNull)
+
+  ownerId String?
+  owner   User?   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  description      String?
+  lastUpdateReason String?
+  lastUpdateAt     DateTime?
+
+  competitor           String?
+  competitorPricing    String?
+  competitorConfidence CompetitorConfidence?
+
+  lostReason LostReason?
+  closedAt   DateTime?
+
+  lastActivityAt DateTime?
+  archivedAt     DateTime?
+
+  deals     Deal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([architectId])
+  @@index([gcId])
+  @@index([developerId])
+  @@index([ownerId])
+  @@index([stage])
+  @@index([leadStatus])
+  @@index([stateCode])
+  @@index([bidDate])
+  @@index([archivedAt])
+  @@map("project")
+}
+
+enum ProjectStage {
+  UNKNOWN
+  PRE_DESIGN
+  SCHEMATIC_DESIGN
+  DESIGN_DEVELOPMENT
+  CONSTRUCTION_DOCUMENTS
+  BIDDING
+  UNDER_CONSTRUCTION
+  WON
+  LOST
+}
+
+enum LeadStatus {
+  LEAD
+  WATCH
+  QUALIFIED
+}
+
+enum CompetitorConfidence {
+  RUMOR
+  SECONDHAND
+  CONFIRMED
+}
+
+enum LostReason {
+  PRICED_TOO_HIGH
+  COMPETITOR_SPECIFIED
+  DISTRIBUTOR_WENT_ELSEWHERE
+  PROJECT_DIED
+  NO_DECISION
 }
 
 enum RateSource {
