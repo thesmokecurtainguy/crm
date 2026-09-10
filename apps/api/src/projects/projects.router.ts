@@ -14,6 +14,7 @@ import {
 	projectListOutput,
 	projectOptionOutput,
 	projectOptionsInput,
+	projectPeopleOutput,
 	projectSummaryOutput,
 	projectTriageInput,
 	projectUpdateArgs,
@@ -53,6 +54,15 @@ export class ProjectsRouter {
 	})
 	async byId(@Input("id") id: string) {
 		return this.projects.byId(id);
+	}
+
+	@Query({
+		input: projectIdInput,
+		output: projectPeopleOutput,
+		meta: restMeta("GET", "/projects/{id}/people", ["Projects"]),
+	})
+	async people(@Input("id") id: string) {
+		return this.projects.people(id);
 	}
 
 	@Mutation({

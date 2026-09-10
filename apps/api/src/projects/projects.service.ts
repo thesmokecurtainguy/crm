@@ -316,6 +316,73 @@ export class ProjectsService {
 		}
 	}
 
+	async people(id: string) {
+		const project = await this.db.project.findUnique({
+			where: { id },
+			select: { architectId: true, gcId: true, developerId: true },
+		});
+		if (!project) throw new NotFoundException(`No project with id ${id}.`);
+
+		const roles: {
+			role: "architect" | "gc" | "developer";
+			companyId: string | null;
+		}[] = [
+			{ role: "architect", companyId: project.architectId },
+			{ role: "gc", companyId: project.gcId },
+			{ role: "developer", companyId: project.developerId },
+		];
+
+		const out = [];
+		for (const { role, companyId } of roles) {
+			if (!companyId) continue;
+			const company = await this.db.company.findUnique({
+				where: { id: companyId },
+				select: {
+					id: true,
+					name: true,
+					phone: true,
+					website: true,
+					city: true,
+					stateCode: true,
+					contacts: {
+						where: { archivedAt: null },
+						orderBy: [
+							{ lastActivityAt: { sort: "desc", nulls: "last" } },
+							{ lastName: "asc" },
+						],
+						take: 25,
+						select: {
+							id: true,
+							firstName: true,
+							lastName: true,
+							title: true,
+							email: true,
+							phone: true,
+							linkedinUrl: true,
+							lastActivityAt: true,
+						},
+					},
+				},
+			});
+			if (!company) continue;
+			const { contacts, ...rest } = company;
+			out.push({
+				role,
+				company: rest,
+				contacts: contacts.map((c) => ({
+					id: c.id,
+					name: [c.firstName, c.lastName].filter(Boolean).join(" "),
+					title: c.title,
+					email: c.email,
+					phone: c.phone,
+					linkedinUrl: c.linkedinUrl,
+					lastActivityAt: iso(c.lastActivityAt),
+				})),
+			});
+		}
+		return out;
+	}
+
 	async archive(id: string): Promise<{ id: string; name: string }> {
 		try {
 			const project = await this.db.project.update({

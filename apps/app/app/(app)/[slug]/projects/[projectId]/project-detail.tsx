@@ -33,6 +33,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CompanyPicker } from "@/components/crm/company-picker";
+import { Timeline } from "@/components/crm/timeline/timeline";
 import { LocalDay } from "@/components/local-date-time";
 import {
 	COMPETITOR_CONFIDENCE_OPTIONS,
@@ -51,6 +52,12 @@ import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 type Project = RouterOutputs["projects"]["byId"];
 
 const NONE = "__none__";
+
+const ROLE_LABEL = {
+	architect: "Architect",
+	gc: "General contractor",
+	developer: "Developer / owner",
+} as const;
 
 type Draft = {
 	name: string;
@@ -139,6 +146,7 @@ export function ProjectDetail({ id }: { id: string }) {
 	const workspaceUrl = useWorkspaceUrl();
 
 	const project = useQuery(trpc.projects.byId.queryOptions({ id }));
+	const people = useQuery(trpc.projects.people.queryOptions({ id }));
 	const users = useQuery(trpc.users.list.queryOptions());
 
 	const [draft, setDraft] = useState<Draft | null>(null);
@@ -380,6 +388,109 @@ export function ProjectDetail({ id }: { id: string }) {
 					</FieldDescription>
 				</CardContent>
 			</Card>
+
+			<div className="grid gap-6 lg:grid-cols-2">
+				<Card>
+					<CardHeader>
+						<CardTitle>People</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						{(people.data ?? []).length === 0 ? (
+							<p className="text-muted-foreground text-sm">
+								No team companies linked yet. Pick the architect below and their
+								people show up here.
+							</p>
+						) : null}
+						{(people.data ?? []).map((group) => (
+							<div key={group.company.id} className="space-y-2">
+								<div className="flex flex-wrap items-baseline justify-between gap-2">
+									<div className="min-w-0">
+										<span className="text-muted-foreground text-xs uppercase">
+											{ROLE_LABEL[group.role]}
+										</span>
+										<div className="truncate font-medium">
+											<Link
+												href={`${workspaceUrl("/companies")}?record=company:${group.company.id}`}
+												className="hover:underline"
+											>
+												{group.company.name}
+											</Link>
+											{group.company.city ? (
+												<span className="ml-2 text-muted-foreground text-sm">
+													{[group.company.city, group.company.stateCode]
+														.filter(Boolean)
+														.join(", ")}
+												</span>
+											) : null}
+										</div>
+									</div>
+									{group.company.phone ? (
+										<a
+											href={`tel:${group.company.phone}`}
+											className="text-sm tabular-nums hover:underline"
+										>
+											{group.company.phone}
+										</a>
+									) : null}
+								</div>
+								{group.contacts.length === 0 ? (
+									<p className="text-muted-foreground text-sm">
+										No named contacts yet. The firm line above is the door.
+									</p>
+								) : (
+									<ul className="divide-y text-sm">
+										{group.contacts.map((c) => (
+											<li
+												key={c.id}
+												className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5"
+											>
+												<Link
+													href={`${workspaceUrl("/contacts")}?record=contact:${c.id}`}
+													className="font-medium hover:underline"
+												>
+													{c.name}
+												</Link>
+												{c.title ? (
+													<span className="text-muted-foreground">
+														{c.title}
+													</span>
+												) : null}
+												<span className="ml-auto flex flex-wrap gap-x-3 text-muted-foreground">
+													{c.phone ? (
+														<a
+															href={`tel:${c.phone}`}
+															className="hover:underline"
+														>
+															{c.phone}
+														</a>
+													) : null}
+													{c.email ? (
+														<a
+															href={`mailto:${c.email}`}
+															className="hover:underline"
+														>
+															{c.email}
+														</a>
+													) : null}
+												</span>
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						))}
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle>Log</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<Timeline anchor={{ projectId: id }} />
+					</CardContent>
+				</Card>
+			</div>
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<Card>

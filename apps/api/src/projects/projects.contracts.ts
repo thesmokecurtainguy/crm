@@ -193,3 +193,28 @@ export const projectOptionsInput = z.object({ q: z.string().default("") });
 export const projectOptionOutput = z.array(
 	z.object({ id: z.string(), name: z.string(), stage: projectStage }),
 );
+
+export const projectPeopleOutput = z.array(
+	z.object({
+		role: z.enum(["architect", "gc", "developer"]),
+		company: z.object({
+			id: z.string(),
+			name: z.string(),
+			phone: z.string().nullable(),
+			website: z.string().nullable(),
+			city: z.string().nullable(),
+			stateCode: z.string().nullable(),
+		}),
+		contacts: z.array(
+			z.object({
+				id: z.string(),
+				name: z.string(),
+				title: z.string().nullable(),
+				email: z.string().nullable(),
+				phone: z.string().nullable(),
+				linkedinUrl: z.string().nullable(),
+				lastActivityAt: z.string().nullable(),
+			}),
+		),
+	}),
+);
