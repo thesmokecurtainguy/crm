@@ -112,11 +112,15 @@ export default defineTool({
 
 		focusOn({ companyId: project.architect?.id ?? null });
 
-		const { value, ...rest } = project;
+		const { value, deals, ...rest } = project;
 		return {
 			found: true as const,
 			...rest,
 			value: value === null ? null : value.toNumber(),
+			deals: deals.map((deal) => ({
+				...deal,
+				amount: deal.amount === null ? null : deal.amount.toNumber(),
+			})),
 			team: {
 				architect: project.architect,
 				gc: project.gc,

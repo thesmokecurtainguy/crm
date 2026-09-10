@@ -84,7 +84,7 @@ export function AgentGutter() {
 					<ChevronRight />
 				</Button>
 			</div>
-			<div className="min-h-0 flex-1">
+			<div className="flex min-h-0 flex-1 flex-col">
 				{record ? (
 					<AgentPanel key={`${record.kind}:${record.id}`} record={record} />
 				) : (
