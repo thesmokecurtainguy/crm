@@ -410,6 +410,26 @@ export class ProjectsService {
 		}
 	}
 
+	async bulkTriage(
+		ids: string[],
+		leadStatus: LeadStatus,
+		stage: ProjectStage | undefined,
+		watchUntil: string | null | undefined,
+	): Promise<BulkResult> {
+		const data: Prisma.ProjectUpdateManyMutationInput = {
+			leadStatus,
+			watchUntil: leadStatus === "WATCH" ? parseDate(watchUntil) : null,
+		};
+		if (leadStatus === "QUALIFIED" && stage) data.stage = stage;
+		return runBulk(ids, async (id) => {
+			const result = await this.db.project.updateMany({
+				where: { id, archivedAt: null },
+				data,
+			});
+			return result.count === 0 ? null : id;
+		});
+	}
+
 	async bulkArchive(ids: string[]): Promise<BulkResult> {
 		return runBulk(ids, async (id) => {
 			const result = await this.db.project.updateMany({

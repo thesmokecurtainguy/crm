@@ -9,11 +9,19 @@ import {
 	type DataTableFacet,
 } from "@crm/ui/components/data-table";
 import { EmptyCellValue } from "@crm/ui/components/empty-cell";
+import { Input } from "@crm/ui/components/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@crm/ui/components/select";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { useTableSelection } from "@crm/ui/hooks/use-table-selection";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CompanyCell } from "@/components/crm/company-cell";
 import { OwnerCell } from "@/components/crm/owner-cell";
@@ -224,6 +232,29 @@ export function ProjectsTable() {
 		}),
 	);
 
+	const [qualifyStage, setQualifyStage] =
+		useState<ProjectStage>("SCHEMATIC_DESIGN");
+	const [watchUntil, setWatchUntil] = useState("");
+
+	const bulkTriage = useMutation(
+		trpc.projects.bulkTriage.mutationOptions({
+			onSuccess: async (result, variables) => {
+				await projects.refetch();
+				selection.clear();
+				toast.success(
+					variables.leadStatus === "QUALIFIED"
+						? `Moved ${result.succeeded} projects into the pipeline.`
+						: variables.leadStatus === "WATCH"
+							? `Watching ${result.succeeded} projects.`
+							: `${result.succeeded} projects back to leads.`,
+				);
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
+	const bulkBusy = bulkArchive.isPending || bulkTriage.isPending;
+
 	const facetCounts = projects.data?.facetCounts;
 
 	const facets: DataTableFacet[] = [
@@ -298,15 +329,79 @@ export function ProjectsTable() {
 			selection={{
 				state: selection,
 				actions: (
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={bulkArchive.isPending || selection.ids.length === 0}
-						onClick={() => bulkArchive.mutate({ ids: selection.ids })}
-					>
-						<Archive data-icon="inline-start" />
-						Archive
-					</Button>
+					<div className="flex flex-wrap items-center gap-2">
+						<Select
+							value={qualifyStage}
+							onValueChange={(value) => setQualifyStage(value as ProjectStage)}
+						>
+							<SelectTrigger size="sm" className="w-[190px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{PROJECT_STAGE_OPTIONS.filter(
+									(o) => o.value !== "WON" && o.value !== "LOST",
+								).map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<Button
+							size="sm"
+							disabled={bulkBusy || selection.ids.length === 0}
+							onClick={() =>
+								bulkTriage.mutate({
+									ids: selection.ids,
+									leadStatus: "QUALIFIED",
+									stage: qualifyStage,
+								})
+							}
+						>
+							Qualify
+						</Button>
+						<Input
+							type="date"
+							value={watchUntil}
+							onChange={(event) => setWatchUntil(event.target.value)}
+							className="h-8 w-[150px]"
+						/>
+						<Button
+							size="sm"
+							variant="outline"
+							disabled={bulkBusy || selection.ids.length === 0}
+							onClick={() =>
+								bulkTriage.mutate({
+									ids: selection.ids,
+									leadStatus: "WATCH",
+									watchUntil: watchUntil
+										? new Date(`${watchUntil}T12:00:00`).toISOString()
+										: null,
+								})
+							}
+						>
+							Watch
+						</Button>
+						<Button
+							size="sm"
+							variant="ghost"
+							disabled={bulkBusy || selection.ids.length === 0}
+							onClick={() =>
+								bulkTriage.mutate({ ids: selection.ids, leadStatus: "LEAD" })
+							}
+						>
+							Back to lead
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							disabled={bulkBusy || selection.ids.length === 0}
+							onClick={() => bulkArchive.mutate({ ids: selection.ids })}
+						>
+							<Archive data-icon="inline-start" />
+							Archive
+						</Button>
+					</div>
 				),
 				rowLabel: (row) => row.name,
 			}}

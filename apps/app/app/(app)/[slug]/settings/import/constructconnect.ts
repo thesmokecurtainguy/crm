@@ -179,12 +179,22 @@ function domainFromEmail(email: string): string {
 		: d;
 }
 
+function unescapeHtml(value: string): string {
+	return value
+		.replace(/&amp;/g, "&")
+		.replace(/&quot;/g, '"')
+		.replace(/&#39;/g, "'")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&nbsp;/g, " ");
+}
+
 export function parseConstructConnect(
 	rows: Record<string, string>[],
 ): CcProject[] {
 	const byId = new Map<string, CcProject>();
 	const get = (row: Record<string, string>, key: string) =>
-		(row[key] ?? "").trim();
+		unescapeHtml((row[key] ?? "").trim());
 
 	for (const row of rows) {
 		const externalId = get(row, "Project Id");

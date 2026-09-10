@@ -93,6 +93,12 @@ export const projectTriageInput = z.object({
 
 export const projectBulkInput = bulkIdsInput;
 
+export const projectBulkTriageInput = bulkIdsInput.extend({
+	leadStatus,
+	stage: projectStage.optional(),
+	watchUntil: dateInput,
+});
+
 const companyRef = z
 	.object({
 		id: z.string(),

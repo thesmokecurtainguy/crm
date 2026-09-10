@@ -7,6 +7,7 @@ import {
 	projectArchiveResultOutput,
 	projectBulkInput,
 	projectBulkResultOutput,
+	projectBulkTriageInput,
 	projectCreateInput,
 	projectDetailOutput,
 	projectIdInput,
@@ -122,6 +123,20 @@ export class ProjectsRouter {
 	})
 	async restore(@Input("id") id: string) {
 		return this.projects.restore(id);
+	}
+
+	@Mutation({
+		input: projectBulkTriageInput,
+		output: projectBulkResultOutput,
+		meta: restMeta("POST", "/projects/bulk/triage", ["Projects"]),
+	})
+	async bulkTriage(@Input() input: z.infer<typeof projectBulkTriageInput>) {
+		return this.projects.bulkTriage(
+			input.ids,
+			input.leadStatus,
+			input.stage,
+			input.watchUntil,
+		);
 	}
 
 	@Mutation({
