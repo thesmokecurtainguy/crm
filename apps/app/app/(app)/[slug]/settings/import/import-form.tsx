@@ -32,6 +32,8 @@ import { type CsvTable, parseCsv, toTable } from "./csv";
 
 const SOURCE_FIELD_LABEL = "Import Source";
 const SOURCE_FIELD_KEY = "import_source";
+const OFFICE_FIELD_LABEL = "Office";
+const OFFICE_FIELD_KEY = "office";
 
 const NONE = "__none__";
 
@@ -51,7 +53,8 @@ type Target =
 	| "linkedin"
 	| "noteDate"
 	| "noteSubject"
-	| "note";
+	| "note"
+	| "office";
 
 const TARGETS: { key: Target; label: string; hint?: string }[] = [
 	{ key: "companyName", label: "Company name" },
@@ -78,6 +81,11 @@ const TARGETS: { key: Target; label: string; hint?: string }[] = [
 	},
 	{ key: "noteSubject", label: "Note subject" },
 	{ key: "note", label: "Note" },
+	{
+		key: "office",
+		label: "Office",
+		hint: "Which office the person sits in, when the firm has several",
+	},
 ];
 
 const AUTO: Record<Target, string[]> = {
@@ -139,6 +147,7 @@ const AUTO: Record<Target, string[]> = {
 		"subject",
 	],
 	note: ["note", "notes", "body", "details"],
+	office: ["office", "office city", "person city", "location"],
 };
 
 function autoMap(headers: string[]): Partial<Record<Target, string>> {
@@ -302,13 +311,21 @@ export function ImportForm() {
 	}
 
 	async function ensureSourceField(entity: "COMPANY" | "CONTACT") {
+		return ensureField(entity, SOURCE_FIELD_KEY, SOURCE_FIELD_LABEL);
+	}
+
+	async function ensureField(
+		entity: "COMPANY" | "CONTACT",
+		key: string,
+		label: string,
+	) {
 		const list = await queryClient.fetchQuery(
 			trpc.fields.list.queryOptions({ entity, includeArchived: false }),
 		);
-		if (list.some((f) => f.key === SOURCE_FIELD_KEY)) return;
+		if (list.some((f) => f.key === key)) return;
 		await createField.mutateAsync({
 			entity,
-			label: SOURCE_FIELD_LABEL,
+			label,
 			type: "TEXT",
 			options: [],
 			agentFilled: false,
@@ -447,19 +464,34 @@ export function ImportForm() {
 			result.contactsSkipped++;
 			contactId = email ? await findContactByEmail(email) : null;
 			if (!contactId) return;
+			await fillContact(row, contactId, tag, true);
 			await logNote(row, contactId, companyId, result);
 			return;
 		}
 
-		const linkedin = normalizeLinkedin(col(row, "linkedin"));
-		await updateContact.mutateAsync({
-			id: contactId,
-			data: {
-				...(linkedin ? { linkedinUrl: linkedin } : {}),
-				fields: { [SOURCE_FIELD_KEY]: tag },
-			},
-		});
+		await fillContact(row, contactId, tag, false);
 		await logNote(row, contactId, companyId, result);
+	}
+
+	async function fillContact(
+		row: Record<string, string>,
+		contactId: string,
+		tag: string,
+		existing: boolean,
+	) {
+		const linkedin = normalizeLinkedin(col(row, "linkedin"));
+		const title = col(row, "title");
+		const office = col(row, "office");
+		const fields: Record<string, string> = existing
+			? {}
+			: { [SOURCE_FIELD_KEY]: tag };
+		if (office) fields[OFFICE_FIELD_KEY] = office;
+		const data: Record<string, string | Record<string, string>> = {};
+		if (linkedin) data.linkedinUrl = linkedin;
+		if (existing && title) data.title = title;
+		if (Object.keys(fields).length > 0) data.fields = fields;
+		if (Object.keys(data).length === 0) return;
+		await updateContact.mutateAsync({ id: contactId, data });
 	}
 
 	async function findContactByEmail(email: string): Promise<string | null> {
@@ -518,6 +550,8 @@ export function ImportForm() {
 		try {
 			await ensureSourceField("COMPANY");
 			await ensureSourceField("CONTACT");
+			if (mapping.office)
+				await ensureField("CONTACT", OFFICE_FIELD_KEY, OFFICE_FIELD_LABEL);
 		} catch (error) {
 			toast.error(
 				error instanceof Error
