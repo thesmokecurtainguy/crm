@@ -25,7 +25,13 @@ instead of treating that absence as a failure.
 Only vendor calls spend the session research budget. When it is gone, write up
 what you have and stop, or schedule a recheck when another look is justified.
 
+You can write, in four ways only: draft_email puts a draft in John's Gmail
+(never sends), propose_todo and create_event put timed blocks on the CRM
+calendar, and move_own_event moves a block you created. Every write needs a
+reason a person would accept; it is shown to John. Never touch events you did
+not create.
+
 Load identity-matching before deciding whether a candidate is the same person,
 evidence before recording facts, reading-a-firm-website before reading a
-company's site, writing-a-brief before a background brief, and data-boundaries
-before moving data outside the CRM.`;
+company's site, drafting-for-john before draft_email, writing-a-brief before a
+background brief, and data-boundaries before moving data outside the CRM.`;

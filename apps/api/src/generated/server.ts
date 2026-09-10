@@ -33,6 +33,7 @@ import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannel
 import { ssoSignInOptionsOutput, ssoSettingsOutput, ssoProviderListInput, ssoProviderListOutput, registerSsoProviderInput, ssoProviderOutput, deleteSsoProviderInput, deleteSsoProviderOutput } from "../sso/sso.contracts";
 import { trackingSettingsOutput, trackingFlagInput, cookieLifetimeInput, addDomainInput, trackedDomainOutput, removeDomainInput, rotateSiteIdOutput, verifyInput, verifyOutput, sourcesOutput, companyActivityInput, websiteActivityOutput, contactActivityInput } from "../tracking/tracking.contracts";
 import { workspaceOutput, memberListInput, memberListOutput, updateWorkspaceInput, setMemberRoleInput, workspaceMemberOutput } from "../workspace/workspace.contracts";
+import { writeListInput, writeListOutput, draftEmailInput, writeResultOutput, createEventInput, moveEventInput, proposeTodoInput, writeIdInput } from "../writes/writes.contracts";
 import type { UsersRouter } from "../users/users.router";
 
 const appRouter = t.router({
@@ -792,6 +793,32 @@ const appRouter = t.router({
     setMemberRole: publicProcedure
       .input(setMemberRoleInput)
       .output(workspaceMemberOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
+    }),
+  writes: t.router({
+    list: publicProcedure
+      .input(writeListInput)
+      .output(writeListOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    draftEmail: publicProcedure
+      .input(draftEmailInput)
+      .output(writeResultOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    createEvent: publicProcedure
+      .input(createEventInput)
+      .output(writeResultOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    moveEvent: publicProcedure
+      .input(moveEventInput)
+      .output(writeResultOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    proposeTodo: publicProcedure
+      .input(proposeTodoInput)
+      .output(writeResultOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    markCompleted: publicProcedure
+      .input(writeIdInput)
+      .output(writeIdInput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
     })
 });

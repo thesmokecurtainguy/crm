@@ -27,6 +27,7 @@ model User {
   ownedContacts  Contact[]           @relation("ContactOwner")
   ownedDeals     Deal[]              @relation("DealOwner")
   ownedProjects  Project[]           @relation("ProjectOwner")
+  agentWrites    AgentWrite[]        @relation("AgentWriteUser")
   activities     Activity[]          @relation("ActivityAuthor")
   mailboxSyncs   MailboxSync[]
   factDecisions  ContactFact[]       @relation("FactDecider")
@@ -329,6 +330,7 @@ model Company {
   emailThreads   EmailThread[]
   calendarEvents CalendarEvent[]
   fieldValues    FieldValue[]
+  agentWrites    AgentWrite[]
   architectOn    Project[]           @relation("ProjectArchitect")
   contractorOn   Project[]           @relation("ProjectGeneralContractor")
   developerOn    Project[]           @relation("ProjectDeveloper")
@@ -394,6 +396,7 @@ model Contact {
   calendarEvents  CalendarEvent[]
   eventAttendance CalendarAttendee[]
   fieldValues     FieldValue[]
+  agentWrites     AgentWrite[]
   visitors        TrackedVisitor[]   @relation("VisitorContact")
   submissions     FormSubmission[]   @relation("SubmissionContact")
   createdAt       DateTime           @default(now())
@@ -949,6 +952,7 @@ model Deal {
   contacts    DealContact[]
   activities  Activity[]
   fieldValues FieldValue[]
+  agentWrites AgentWrite[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -1012,9 +1016,10 @@ model Project {
   lastActivityAt DateTime?
   archivedAt     DateTime?
 
-  deals     Deal[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deals       Deal[]
+  agentWrites AgentWrite[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([architectId])
   @@index([gcId])
@@ -1026,6 +1031,54 @@ model Project {
   @@index([bidDate])
   @@index([archivedAt])
   @@map("project")
+}
+
+model AgentWrite {
+  id     String           @id @default(cuid())
+  userId String
+  user   User             @relation("AgentWriteUser", fields: [userId], references: [id], onDelete: Cascade)
+  kind   AgentWriteKind
+  status AgentWriteStatus @default(DONE)
+
+  reason  String
+  summary String
+  payload Json?
+
+  externalId  String?
+  externalUrl String?
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([kind, createdAt])
+  @@index([externalId])
+  @@map("agentWrite")
+}
+
+enum AgentWriteKind {
+  DRAFT_EMAIL
+  CREATE_EVENT
+  MOVE_EVENT
+  TODO
+}
+
+enum AgentWriteStatus {
+  DONE
+  FAILED
+  COMPLETED_BY_USER
 }
 
 model ConstructConnectDigest {
@@ -1431,6 +1484,8 @@ model AppSetting {
   ratesRefreshedAt DateTime?
 
   archiveRetentionDays Int @default(180)
+
+  agentCalendarId String?
 
   trackingSiteId           String? @unique
   trackingCrossDomain      Boolean @default(true)

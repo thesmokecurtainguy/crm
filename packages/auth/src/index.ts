@@ -31,6 +31,8 @@ export {
 } from "./organization";
 export {
 	CALENDAR_SCOPE,
+	CALENDAR_WRITE_SCOPE,
+	GMAIL_COMPOSE_SCOPE,
 	GMAIL_SCOPE,
 	GOOGLE_PROVIDER_ID,
 	hasSyncScopes,

@@ -52,6 +52,43 @@ export class MailboxApiClient {
 		}
 	}
 
+	async send<T>(
+		method: "POST" | "PUT" | "PATCH" | "DELETE",
+		url: string,
+		accessToken: string,
+		body?: unknown,
+	): Promise<MailboxResult<T>> {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+		try {
+			const response = await fetch(url, {
+				method,
+				headers: {
+					authorization: `Bearer ${accessToken}`,
+					...(body === undefined ? {} : { "content-type": "application/json" }),
+				},
+				body: body === undefined ? undefined : JSON.stringify(body),
+				signal: controller.signal,
+			});
+
+			return await this.interpret<T>(response, new URL(url).pathname);
+		} catch (error) {
+			const aborted = error instanceof Error && error.name === "AbortError";
+			return {
+				outcome: "failed",
+				reason: aborted
+					? `Timed out after ${DEFAULT_TIMEOUT_MS}ms.`
+					: error instanceof Error
+						? error.message
+						: String(error),
+				retryable: true,
+			};
+		} finally {
+			clearTimeout(timeout);
+		}
+	}
+
 	private async interpret<T>(
 		response: Response,
 		path: string,

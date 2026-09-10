@@ -39,6 +39,7 @@ import { TrackingModule } from "./tracking/tracking.module";
 import { TrpcModule } from "./trpc/trpc.module";
 import { UsersModule } from "./users/users.module";
 import { WorkspaceModule } from "./workspace/workspace.module";
+import { WritesModule } from "./writes/writes.module";
 
 @Module({
 	imports: [
@@ -64,6 +65,7 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		DealsModule,
 		ProjectsModule,
 		ConstructConnectModule,
+		WritesModule,
 		FieldsModule,
 		ActivitiesModule,
 		AgentModule,
