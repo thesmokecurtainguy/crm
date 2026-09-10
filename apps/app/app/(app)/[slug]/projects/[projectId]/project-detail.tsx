@@ -305,15 +305,16 @@ export function ProjectDetail({ id }: { id: string }) {
 							</span>
 						) : null}
 						{constructConnectUrl(current.externalId) ? (
-							<a
-								href={constructConnectUrl(current.externalId) ?? "#"}
-								target="_blank"
-								rel="noreferrer"
-								className="inline-flex items-center gap-1 hover:underline"
-							>
-								ConstructConnect #{current.externalId}
-								<Launch className="size-3" />
-							</a>
+							<Button asChild variant="outline" size="sm">
+								<a
+									href={constructConnectUrl(current.externalId) ?? "#"}
+									target="_blank"
+									rel="noreferrer"
+								>
+									Open in ConstructConnect
+									<Launch data-icon="inline-end" />
+								</a>
+							</Button>
 						) : current.externalId ? (
 							<span>ConstructConnect #{current.externalId}</span>
 						) : null}

@@ -203,6 +203,17 @@ function normalizeLinkedin(raw: string): string {
 	return `https://www.${v.replace(/^www\./, "")}`;
 }
 
+function normalizePhone(raw: string): string {
+	const trimmed = raw.trim().replace(/\.0+$/, "");
+	const digits = trimmed.replace(/\D/g, "");
+	const local =
+		digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+	if (local.length === 10) {
+		return `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+	}
+	return trimmed;
+}
+
 function noteDate(raw: string): string | null {
 	const v = raw.trim();
 	if (!v) return null;
@@ -377,7 +388,7 @@ export function ImportForm() {
 		const data: Record<string, string | Record<string, string>> = {
 			fields: { [SOURCE_FIELD_KEY]: tag },
 		};
-		const phone = col(row, "companyPhone");
+		const phone = normalizePhone(col(row, "companyPhone"));
 		const city = col(row, "companyCity");
 		const state = col(row, "companyState");
 		const li = normalizeLinkedin(col(row, "companyLinkedin"));
@@ -455,7 +466,7 @@ export function ImportForm() {
 				firstName: first,
 				lastName: last || undefined,
 				email: email || undefined,
-				phone: col(row, "phone") || undefined,
+				phone: normalizePhone(col(row, "phone")) || undefined,
 				title: col(row, "title") || undefined,
 				companyId,
 			});
