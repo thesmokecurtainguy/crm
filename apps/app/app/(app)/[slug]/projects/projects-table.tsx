@@ -1,6 +1,7 @@
 "use client";
 
 import Archive from "@carbon/icons-react/es/Archive";
+import Launch from "@carbon/icons-react/es/Launch";
 import type { LeadStatus, ProjectStage } from "@crm/db/enums";
 import { Button } from "@crm/ui/components/button";
 import {
@@ -29,6 +30,7 @@ import { ListSearch } from "@/components/data-table/list-search";
 import { useTableQuery } from "@/components/data-table/use-table-query";
 import { LocalDay, LocalRelativeTime } from "@/components/local-date-time";
 import {
+	constructConnectUrl,
 	formatProjectValue,
 	LEAD_STATUS_OPTIONS,
 	leadStatusLabel,
@@ -53,7 +55,21 @@ const COLUMNS: DataTableColumn<ProjectRow>[] = [
 		width: "w-[26%]",
 		cell: (row) => (
 			<span className="flex min-w-0 flex-col">
-				<span className="truncate font-medium">{row.name}</span>
+				<span className="flex min-w-0 items-center gap-1.5">
+					<span className="truncate font-medium">{row.name}</span>
+					{constructConnectUrl(row.externalId) ? (
+						<a
+							href={constructConnectUrl(row.externalId) ?? "#"}
+							target="_blank"
+							rel="noreferrer"
+							aria-label="Open in ConstructConnect"
+							className="shrink-0 text-muted-foreground hover:text-foreground"
+							onClick={(event) => event.stopPropagation()}
+						>
+							<Launch className="size-3.5" />
+						</a>
+					) : null}
+				</span>
 				{row.category ? (
 					<span className="truncate text-muted-foreground text-xs">
 						{row.category}

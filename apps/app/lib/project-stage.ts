@@ -81,3 +81,8 @@ export function formatProjectValue(value: number | null): string | null {
 		maximumFractionDigits: value >= 1_000_000 ? 1 : 0,
 	}).format(value);
 }
+
+export function constructConnectUrl(externalId: string | null): string | null {
+	if (!externalId || !/^\d+$/.test(externalId)) return null;
+	return `https://insight.cmdgroup.com/Project/Home/ProjectInformation/${externalId}/1`;
+}

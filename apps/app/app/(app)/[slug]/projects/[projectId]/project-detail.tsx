@@ -2,6 +2,7 @@
 
 import Archive from "@carbon/icons-react/es/Archive";
 import ArrowLeft from "@carbon/icons-react/es/ArrowLeft";
+import Launch from "@carbon/icons-react/es/Launch";
 import Undo from "@carbon/icons-react/es/Undo";
 import type { DealStage, LeadStatus, ProjectStage } from "@crm/db/enums";
 import { Button } from "@crm/ui/components/button";
@@ -38,6 +39,7 @@ import { LocalDay } from "@/components/local-date-time";
 import { dealStageLabel } from "@/lib/deal-stage";
 import {
 	COMPETITOR_CONFIDENCE_OPTIONS,
+	constructConnectUrl,
 	formatProjectValue,
 	LOST_REASON_OPTIONS,
 	leadStatusLabel,
@@ -302,7 +304,17 @@ export function ProjectDetail({ id }: { id: string }) {
 								{formatProjectValue(current.value)}
 							</span>
 						) : null}
-						{current.externalId ? (
+						{constructConnectUrl(current.externalId) ? (
+							<a
+								href={constructConnectUrl(current.externalId) ?? "#"}
+								target="_blank"
+								rel="noreferrer"
+								className="inline-flex items-center gap-1 hover:underline"
+							>
+								ConstructConnect #{current.externalId}
+								<Launch className="size-3" />
+							</a>
+						) : current.externalId ? (
 							<span>ConstructConnect #{current.externalId}</span>
 						) : null}
 						{current.archivedAt ? <span>Archived</span> : null}
