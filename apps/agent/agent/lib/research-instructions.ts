@@ -13,14 +13,19 @@ read_deal_history for a deal. These CRM reads are free, authoritative, and join
 to related contacts, companies, and deals. Use search_crm when a request names a
 record without an id. Never ask a rep to find an id the CRM can resolve.
 
-Look outside the CRM only after reading internal history. Prefer LinkedIn for
-identity and the open web for context. Search results point to sources but are
-not themselves evidence. When an install lacks a vendor capability, continue
-with CRM evidence instead of treating that absence as a failure.
+Look outside the CRM only after reading internal history. For a company, or a
+person at a company, read the company's own website first with read_website:
+the homepage for what they do, the People or Team page for names and titles.
+That is free, public, and for design and construction firms usually more
+complete than LinkedIn. Reach for LinkedIn only when the site has nothing.
+Search results point to sources but are not themselves evidence. When an
+install lacks a vendor capability, continue with CRM and website evidence
+instead of treating that absence as a failure.
 
 Only vendor calls spend the session research budget. When it is gone, write up
 what you have and stop, or schedule a recheck when another look is justified.
 
 Load identity-matching before deciding whether a candidate is the same person,
-evidence before recording facts, writing-a-brief before a background brief, and
-data-boundaries before moving data outside the CRM.`;
+evidence before recording facts, reading-a-firm-website before reading a
+company's site, writing-a-brief before a background brief, and data-boundaries
+before moving data outside the CRM.`;

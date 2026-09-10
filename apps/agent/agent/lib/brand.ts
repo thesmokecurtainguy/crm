@@ -1,8 +1,10 @@
 import { db, EnrichmentStatus } from "@crm/db";
 import { mirrorBrandImages } from "./brand-images";
 import { brandToUpdate, filledFields, stillFillable } from "./brand-mapping";
+import type { Brand } from "./context-dev";
 import { brandByDomain, contextDevEnabled } from "./context-dev";
 import { UNLESS_COMPLETE } from "./enrichment";
+import { brandFromSite } from "./site-brand";
 
 export type BrandResult = {
 	enriched: boolean;
@@ -58,13 +60,6 @@ export async function runBrand({
 
 	if (!company) return { enriched: false, reason: "No such company." };
 
-	if (!(await contextDevEnabled())) {
-		const reason =
-			"Context.dev is not configured, so there is nowhere to look.";
-		await settle(companyId, EnrichmentStatus.SKIPPED, reason);
-		return { enriched: false, reason };
-	}
-
 	if (!company.domain) {
 		await settle(
 			companyId,
@@ -75,9 +70,6 @@ export async function runBrand({
 		return { enriched: false, reason: "No domain on this company." };
 	}
 
-	const charge = spend(2);
-	if (!charge.ok) return { enriched: false, reason: charge.reason };
-
 	await db.company.updateMany({
 		where: { id: companyId, ...UNLESS_COMPLETE },
 		data: {
@@ -86,7 +78,7 @@ export async function runBrand({
 		},
 	});
 
-	const result = await brandByDomain(company.domain, fresh ? 0 : undefined);
+	const result = await lookupBrand(company.domain, fresh, spend);
 
 	if (result.outcome === "skipped") {
 		await settle(companyId, EnrichmentStatus.SKIPPED, result.reason);
@@ -144,6 +136,41 @@ export async function runBrand({
 	};
 }
 
+async function lookupBrand(
+	domain: string,
+	fresh: boolean,
+	spend: Spend,
+): Promise<
+	| { outcome: "ok"; brand: Brand; raw: unknown }
+	| { outcome: "skipped"; reason: string }
+	| { outcome: "failed"; reason: string; retryable?: boolean }
+> {
+	const site = await brandFromSite(domain);
+	if (site.outcome === "ok" && (site.brand.title || site.brand.logos?.length)) {
+		return { outcome: "ok", brand: site.brand, raw: site.raw };
+	}
+
+	if (await contextDevEnabled()) {
+		const charge = spend(2);
+		if (!charge.ok)
+			return { outcome: "skipped", reason: charge.reason ?? "Budget." };
+		const vendor = await brandByDomain(domain, fresh ? 0 : undefined);
+		if (vendor.outcome === "found") {
+			return { outcome: "ok", brand: vendor.brand, raw: vendor.raw };
+		}
+		return vendor;
+	}
+
+	if (site.outcome === "failed") {
+		return {
+			outcome: "failed",
+			reason: site.reason,
+			retryable: site.retryable,
+		};
+	}
+	return { outcome: "ok", brand: site.brand, raw: site.raw };
+}
+
 function snapshot<T extends { name: string; domain: string | null }>(
 	company: T,
 ) {
@@ -157,7 +184,7 @@ export function brandOutcome(result: BrandResult): string {
 	const mirrored = result.mirrored ?? [];
 
 	if (filled.length === 0) {
-		return "Everything Context.dev returned was already on the record.";
+		return "Everything the website offered was already on the record.";
 	}
 
 	return `Filled ${filled.join(", ")}.${mirrored.length > 0 ? ` Copied ${mirrored.length} image(s) in-house.` : ""}`;
