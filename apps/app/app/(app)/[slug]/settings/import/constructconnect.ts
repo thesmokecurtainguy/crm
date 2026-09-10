@@ -127,6 +127,7 @@ export function roleKind(
 	raw: string,
 ): "architect" | "gc" | "developer" | "other" {
 	const v = raw.toLowerCase();
+	if (v.includes("bidder") || v.includes("plan holder")) return "other";
 	if (v === "architect" || v.startsWith("architect ")) return "architect";
 	if (v.includes("general contractor") || v.includes("construction manager")) {
 		return "gc";

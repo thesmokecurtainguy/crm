@@ -1028,6 +1028,23 @@ model Project {
   @@map("project")
 }
 
+model ConstructConnectDigest {
+  id              String   @id @default(cuid())
+  gmailMessageId  String   @unique
+  userId          String
+  subject         String?
+  searchName      String?
+  receivedAt      DateTime
+  projectsFound   Int      @default(0)
+  projectsCreated Int      @default(0)
+  projectsUpdated Int      @default(0)
+  error           String?
+  processedAt     DateTime @default(now())
+
+  @@index([userId, receivedAt])
+  @@map("constructConnectDigest")
+}
+
 enum ProjectStage {
   UNKNOWN
   PRE_DESIGN

@@ -11,6 +11,7 @@ import { BackfillModule } from "./backfill/backfill.module";
 import { AppCacheModule } from "./cache/cache.module";
 import { CompaniesModule } from "./companies/companies.module";
 import { validateEnv } from "./config/env.validation";
+import { ConstructConnectModule } from "./constructconnect/constructconnect.module";
 import { ContactsModule } from "./contacts/contacts.module";
 import { ConversationsModule } from "./conversations/conversations.module";
 import { CrmModule } from "./crm/crm.module";
@@ -62,6 +63,7 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		CurrencyModule,
 		DealsModule,
 		ProjectsModule,
+		ConstructConnectModule,
 		FieldsModule,
 		ActivitiesModule,
 		AgentModule,
