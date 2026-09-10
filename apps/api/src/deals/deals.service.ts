@@ -210,6 +210,8 @@ export class DealsService {
 				closedReason: true,
 				createdAt: true,
 				archivedAt: true,
+				channel: true,
+				project: { select: { id: true, name: true } },
 				company: { select: { ...COMPANY_SELECT, industry: true } },
 				owner: { select: OWNER_SELECT },
 				contacts: {
@@ -277,6 +279,8 @@ export class DealsService {
 						currency,
 						...fx,
 						expectedCloseDate: parseDate(input.expectedCloseDate),
+						projectId: input.projectId ?? null,
+						channel: input.channel ?? null,
 					},
 					select: { id: true, name: true, companyId: true },
 				});
@@ -326,6 +330,14 @@ export class DealsService {
 		}
 		if (input.currency !== undefined) {
 			data.currency = normalizeCurrency(input.currency);
+		}
+		if (input.projectId !== undefined) {
+			data.project = input.projectId
+				? { connect: { id: input.projectId } }
+				: { disconnect: true };
+		}
+		if (input.channel !== undefined) {
+			data.channel = input.channel;
 		}
 		if (input.expectedCloseDate !== undefined) {
 			data.expectedCloseDate = parseDate(input.expectedCloseDate);

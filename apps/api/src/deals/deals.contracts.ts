@@ -41,6 +41,8 @@ const stageEnum = z.enum(
 	Object.values(DealStage) as [DealStage, ...DealStage[]],
 );
 
+const channelEnum = z.enum(["DIRECT", "DISTRIBUTOR"]);
+
 export const dealCreateInput = z.object({
 	name: z.string().trim().min(1, "A deal needs a name."),
 	companyId: z.string().min(1, "A deal belongs to a company."),
@@ -49,6 +51,8 @@ export const dealCreateInput = z.object({
 	amountCents,
 	currency: currencyCode.optional(),
 	expectedCloseDate: z.string().nullable().optional(),
+	projectId: z.string().nullable().optional(),
+	channel: channelEnum.nullable().optional(),
 });
 
 export type DealCreateInput = z.infer<typeof dealCreateInput>;
@@ -61,6 +65,8 @@ const dealUpdateInput = z.object({
 	amountCents,
 	currency: currencyCode.optional(),
 	expectedCloseDate: z.string().nullable().optional(),
+	projectId: z.string().nullable().optional(),
+	channel: channelEnum.nullable().optional(),
 	fields: recordFieldValues.optional(),
 });
 
@@ -229,6 +235,8 @@ export const dealDetailOutput = z.object({
 	name: z.string(),
 	description: z.string().nullable(),
 	stage: stageEnum,
+	channel: channelEnum.nullable(),
+	project: z.object({ id: z.string(), name: z.string() }).nullable(),
 	currency: z.string(),
 	closedReason: z.string().nullable(),
 	company: dealCompanyDetailOutput,

@@ -180,6 +180,11 @@ enum DealStage {
   CLOSED_LOST
 }
 
+enum QuoteChannel {
+  DIRECT
+  DISTRIBUTOR
+}
+
 enum ActivityType {
   NOTE
   CALL
@@ -950,7 +955,8 @@ model Deal {
   archivedAt     DateTime?
 
   projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project   Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  channel   QuoteChannel?
 
   contacts    DealContact[]
   activities  Activity[]

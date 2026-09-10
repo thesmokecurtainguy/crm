@@ -3,7 +3,7 @@
 import Archive from "@carbon/icons-react/es/Archive";
 import ArrowLeft from "@carbon/icons-react/es/ArrowLeft";
 import Undo from "@carbon/icons-react/es/Undo";
-import type { LeadStatus, ProjectStage } from "@crm/db/enums";
+import type { DealStage, LeadStatus, ProjectStage } from "@crm/db/enums";
 import { Button } from "@crm/ui/components/button";
 import {
 	Card,
@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { CompanyPicker } from "@/components/crm/company-picker";
 import { Timeline } from "@/components/crm/timeline/timeline";
 import { LocalDay } from "@/components/local-date-time";
+import { dealStageLabel } from "@/lib/deal-stage";
 import {
 	COMPETITOR_CONFIDENCE_OPTIONS,
 	formatProjectValue,
@@ -151,6 +152,13 @@ export function ProjectDetail({ id }: { id: string }) {
 
 	const [draft, setDraft] = useState<Draft | null>(null);
 	const [watchUntil, setWatchUntil] = useState("");
+	const [quoteOpen, setQuoteOpen] = useState(false);
+	const [quoteChannel, setQuoteChannel] = useState<"DISTRIBUTOR" | "DIRECT">(
+		"DISTRIBUTOR",
+	);
+	const [quoteCompanyId, setQuoteCompanyId] = useState("");
+	const [quoteAmount, setQuoteAmount] = useState("");
+	const [quoteBidDate, setQuoteBidDate] = useState("");
 
 	useEffect(() => {
 		if (project.data) setDraft(toDraft(project.data));
@@ -181,6 +189,21 @@ export function ProjectDetail({ id }: { id: string }) {
 				await refresh();
 				toast.success(
 					`Now ${leadStatusLabel(result.leadStatus as LeadStatus)}.`,
+				);
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
+	const createQuote = useMutation(
+		trpc.deals.create.mutationOptions({
+			onSuccess: async () => {
+				await refresh();
+				setQuoteOpen(false);
+				setQuoteAmount("");
+				setQuoteBidDate("");
+				toast.success(
+					"Quote added. Its follow-up clock starts on the bid date.",
 				);
 			},
 			onError: (error) => toast.error(error.message),
@@ -793,24 +816,156 @@ export function ProjectDetail({ id }: { id: string }) {
 					</Card>
 
 					<Card>
-						<CardHeader>
+						<CardHeader className="flex flex-row items-center justify-between">
 							<CardTitle>Quotes</CardTitle>
+							<Button
+								size="sm"
+								variant={quoteOpen ? "ghost" : "outline"}
+								onClick={() => setQuoteOpen((open) => !open)}
+							>
+								{quoteOpen ? "Cancel" : "New quote"}
+							</Button>
 						</CardHeader>
-						<CardContent>
-							{current.deals.length === 0 ? (
+						<CardContent className="space-y-4">
+							{quoteOpen ? (
+								<FieldGroup>
+									<Field>
+										<FieldLabel>Who is bidding</FieldLabel>
+										<div className="flex gap-2">
+											<Button
+												size="sm"
+												variant={
+													quoteChannel === "DISTRIBUTOR"
+														? "contrast"
+														: "outline"
+												}
+												onClick={() => setQuoteChannel("DISTRIBUTOR")}
+											>
+												Through a distributor
+											</Button>
+											<Button
+												size="sm"
+												variant={
+													quoteChannel === "DIRECT" ? "contrast" : "outline"
+												}
+												onClick={() => {
+													setQuoteChannel("DIRECT");
+													setQuoteCompanyId(current.gc?.id ?? "");
+												}}
+											>
+												We bid direct
+											</Button>
+										</div>
+										<FieldDescription>
+											{quoteChannel === "DIRECT"
+												? "No salesperson to chase. The follow-up clock points at you, and the buyer is the GC."
+												: "The distributor's salesperson owns the follow-up. You can add several quotes on one project."}
+										</FieldDescription>
+									</Field>
+									<Field>
+										<FieldLabel htmlFor="quote-company">
+											{quoteChannel === "DIRECT"
+												? "General contractor"
+												: "Distributor"}
+										</FieldLabel>
+										<CompanyPicker
+											id="quote-company"
+											value={quoteCompanyId}
+											onValueChange={setQuoteCompanyId}
+											placeholder={
+												quoteChannel === "DIRECT"
+													? "Who are we bidding to?"
+													: "Which distributor?"
+											}
+											selected={
+												quoteChannel === "DIRECT" &&
+												current.gc &&
+												quoteCompanyId === current.gc.id
+													? { value: current.gc.id, label: current.gc.name }
+													: undefined
+											}
+										/>
+									</Field>
+									<div className="grid grid-cols-2 gap-3">
+										<Field>
+											<FieldLabel>Quote amount ($)</FieldLabel>
+											<Input
+												inputMode="decimal"
+												value={quoteAmount}
+												onChange={(event) => setQuoteAmount(event.target.value)}
+											/>
+										</Field>
+										<Field>
+											<FieldLabel>Bid date</FieldLabel>
+											<Input
+												type="date"
+												value={quoteBidDate}
+												onChange={(event) =>
+													setQuoteBidDate(event.target.value)
+												}
+											/>
+										</Field>
+									</div>
+									<Button
+										size="sm"
+										disabled={createQuote.isPending || !quoteCompanyId}
+										onClick={() => {
+											const amount = numberOrNull(quoteAmount);
+											createQuote.mutate({
+												name: `${current.name} · ${quoteChannel === "DIRECT" ? "direct" : "distributor"}`,
+												companyId: quoteCompanyId,
+												ownerId: current.owner?.id ?? users.data?.[0]?.id ?? "",
+												stage: "DEMO_BOOKED",
+												amountCents:
+													amount === null ? null : Math.round(amount * 100),
+												expectedCloseDate: dateOrNull(quoteBidDate),
+												projectId: id,
+												channel: quoteChannel,
+											});
+										}}
+									>
+										{createQuote.isPending ? (
+											<Spinner data-icon="inline-start" />
+										) : null}
+										Add quote
+									</Button>
+								</FieldGroup>
+							) : null}
+
+							{current.deals.length === 0 && !quoteOpen ? (
 								<p className="text-muted-foreground text-sm">
-									No quotes linked yet. Deals attached to this project will show
-									here, one per distributor.
+									No quotes yet. Add one when someone asks for a number — a
+									distributor, or you bidding direct. Each one gets its own
+									clock from its bid date.
 								</p>
 							) : (
-								<ul className="space-y-2 text-sm">
+								<ul className="divide-y text-sm">
 									{current.deals.map((deal) => (
-										<li key={deal.id} className="flex justify-between gap-3">
-											<span className="truncate">
-												{deal.company.name} · {deal.name}
+										<li
+											key={deal.id}
+											className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
+										>
+											<Link
+												href={`${workspaceUrl("/deals")}?record=deal:${deal.id}`}
+												className="font-medium hover:underline"
+											>
+												{deal.company.name}
+											</Link>
+											<span className="text-muted-foreground text-xs uppercase">
+												{deal.channel === "DIRECT" ? "Direct" : "Distributor"}
 											</span>
-											<span className="shrink-0 text-muted-foreground">
-												{deal.stage}
+											<span className="ml-auto flex flex-wrap gap-x-3 text-muted-foreground">
+												{deal.amount !== null ? (
+													<span className="tabular-nums">
+														{formatProjectValue(deal.amount)}
+													</span>
+												) : null}
+												{deal.expectedCloseDate ? (
+													<span>
+														Bid <LocalDay date={deal.expectedCloseDate} />
+													</span>
+												) : null}
+												<span>{dealStageLabel(deal.stage as DealStage)}</span>
 											</span>
 										</li>
 									))}
