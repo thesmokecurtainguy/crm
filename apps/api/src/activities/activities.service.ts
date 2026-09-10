@@ -155,7 +155,12 @@ export class ActivitiesService {
 		});
 
 		await this.stamp.touch(
-			{ companyId, contactId: input.contactId, dealId: input.dealId },
+			{
+				companyId,
+				contactId: input.contactId,
+				dealId: input.dealId,
+				projectId: input.projectId,
+			},
 			activity.createdAt,
 		);
 

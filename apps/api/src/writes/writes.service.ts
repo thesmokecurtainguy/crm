@@ -11,6 +11,7 @@ import {
 	Logger,
 	NotFoundException,
 } from "@nestjs/common";
+import { ActivityStampService } from "../crm/activity-stamp.service";
 import { InjectDatabase } from "../database/database.constants";
 import { MailboxApiClient } from "../mailbox/mailbox-api.client";
 import { MailboxTokenService } from "../mailbox/mailbox-token.service";
@@ -28,6 +29,13 @@ const SETTINGS_ID = "app";
 const CRM_CALENDAR_NAME = "CRM";
 const TIME_ZONE = "America/New_York";
 
+const JOURNAL_VERB: Record<AgentWriteKind, string> = {
+	DRAFT_EMAIL: "drafted",
+	CREATE_EVENT: "scheduled",
+	MOVE_EVENT: "moved",
+	TODO: "to-do",
+};
+
 type Links = {
 	contactId?: string | null;
 	companyId?: string | null;
@@ -43,6 +51,7 @@ export class WritesService {
 		@InjectDatabase() private readonly db: Db,
 		private readonly tokens: MailboxTokenService,
 		private readonly api: MailboxApiClient,
+		private readonly stamp: ActivityStampService,
 	) {}
 
 	async list(userId: string, input: WriteListInput) {
@@ -346,7 +355,7 @@ export class WritesService {
 		when: { start: string; end: string } | null,
 		links: Links,
 	) {
-		return this.db.agentWrite.create({
+		const write = await this.db.agentWrite.create({
 			data: {
 				userId,
 				kind,
@@ -365,6 +374,81 @@ export class WritesService {
 			},
 			select: { id: true },
 		});
+
+		if (status === "DONE")
+			await this.journal(
+				userId,
+				kind,
+				summary,
+				reason,
+				externalUrl,
+				when,
+				links,
+			);
+		return write;
+	}
+
+	private async journal(
+		userId: string,
+		kind: AgentWriteKind,
+		summary: string,
+		reason: string,
+		externalUrl: string | null,
+		when: { start: string; end: string } | null,
+		links: Links,
+	) {
+		const hasTarget = Boolean(
+			links.contactId || links.companyId || links.projectId || links.dealId,
+		);
+		if (!hasTarget) return;
+
+		const isTask = kind === "TODO";
+		const subject = `Agent: ${JOURNAL_VERB[kind]} — ${summary}`;
+		const body = [reason, externalUrl ? `Link: ${externalUrl}` : null]
+			.filter(Boolean)
+			.join("\n");
+		const now = new Date();
+
+		const targets: Links[] = [];
+		if (links.projectId)
+			targets.push({
+				projectId: links.projectId,
+				companyId: links.companyId ?? null,
+			});
+		if (links.contactId)
+			targets.push({
+				contactId: links.contactId,
+				companyId: links.companyId ?? null,
+			});
+		if (
+			!links.projectId &&
+			!links.contactId &&
+			(links.companyId || links.dealId)
+		) {
+			targets.push({
+				companyId: links.companyId ?? null,
+				dealId: links.dealId ?? null,
+			});
+		}
+
+		for (const target of targets) {
+			await this.db.activity.create({
+				data: {
+					type: isTask ? "TASK" : "NOTE",
+					subject,
+					body,
+					occurredAt: now,
+					dueAt: isTask && when ? new Date(when.start) : null,
+					projectId: target.projectId ?? null,
+					contactId: target.contactId ?? null,
+					companyId: target.companyId ?? null,
+					dealId: target.dealId ?? null,
+					createdById: userId,
+					meta: { agentWrite: kind },
+				},
+			});
+			await this.stamp.touch(target, now);
+		}
 	}
 }
 
