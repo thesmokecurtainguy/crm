@@ -41,6 +41,7 @@ export default defineDynamic({
 					contactId: attributeText.parse(attributes.contactId),
 					companyId: attributeText.parse(attributes.companyId),
 					dealId: attributeText.parse(attributes.dealId),
+					projectId: attributeText.parse(attributes.projectId),
 				},
 				{
 					dispatched: Boolean(kind),

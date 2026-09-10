@@ -531,6 +531,8 @@ model AgentConversation {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   dealId    String?
   deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   userId String
   user   User   @relation("ConversationOwner", fields: [userId], references: [id], onDelete: Cascade)
@@ -562,6 +564,7 @@ model AgentConversation {
   @@index([contactId, lastMessageAt])
   @@index([companyId, lastMessageAt])
   @@index([dealId, lastMessageAt])
+  @@index([projectId, lastMessageAt])
   @@index([userId, kind, lastMessageAt])
   @@index([agentId, lastMessageAt])
   @@map("agentConversation")
@@ -1016,11 +1019,12 @@ model Project {
   lastActivityAt DateTime?
   archivedAt     DateTime?
 
-  deals       Deal[]
-  agentWrites AgentWrite[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  activities  Activity[]
+  deals              Deal[]
+  agentWrites        AgentWrite[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  activities         Activity[]
+  agentConversations AgentConversation[]
 
   @@index([architectId])
   @@index([gcId])

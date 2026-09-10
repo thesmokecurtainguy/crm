@@ -22,6 +22,7 @@ export async function sessionPreamble(
 		contactId?: string | null;
 		companyId?: string | null;
 		dealId?: string | null;
+		projectId?: string | null;
 	},
 	opened: Opened,
 ): Promise<Preamble> {
@@ -29,6 +30,7 @@ export async function sessionPreamble(
 	if (record.contactId) return contactPreamble(record.contactId, opened);
 	if (record.companyId) return companyPreamble(record.companyId, opened);
 	if (record.dealId) return dealPreamble(record.dealId, opened);
+	if (record.projectId) return projectPreamble(record.projectId, opened);
 	return noRecordPreamble();
 }
 
@@ -321,6 +323,81 @@ export async function dealPreamble(
 		.join("\n");
 
 	return { markdown, focus: { companyId: deal.company?.id ?? null } };
+}
+
+export async function projectPreamble(
+	projectId: string,
+	opened: Opened,
+): Promise<Preamble> {
+	const project = await db.project.findUnique({
+		where: { id: projectId },
+		select: {
+			name: true,
+			stage: true,
+			leadStatus: true,
+			city: true,
+			stateCode: true,
+			value: true,
+			floors: true,
+			bidDate: true,
+			lastUpdateReason: true,
+			lastUpdateAt: true,
+			architect: { select: { id: true, name: true } },
+			gc: { select: { id: true, name: true } },
+			developer: { select: { id: true, name: true } },
+		},
+	});
+
+	if (!project) return { markdown: await closing(), focus: {} };
+
+	const where = [project.city, project.stateCode].filter(Boolean).join(", ");
+	const team = [
+		project.architect
+			? `architect ${project.architect.name} \`${project.architect.id}\``
+			: null,
+		project.gc ? `GC ${project.gc.name} \`${project.gc.id}\`` : null,
+		project.developer
+			? `developer ${project.developer.name} \`${project.developer.id}\``
+			: null,
+	]
+		.filter(Boolean)
+		.join("; ");
+
+	const markdown = [
+		"## This session",
+		"",
+		`You are working on the project **${project.name}**${where ? ` in ${where}` : ""} — project id \`${projectId}\`.`,
+		`Stage: **${project.stage}**, triage: **${project.leadStatus}**${
+			project.value
+				? `. Value: $${project.value.toNumber().toLocaleString("en-US")}`
+				: ""
+		}${project.floors ? `. ${project.floors} floors` : ""}${
+			project.bidDate ? `. Bid date: ${project.bidDate.toDateString()}` : ""
+		}.`,
+		project.lastUpdateReason
+			? `Last update: ${project.lastUpdateReason}${
+					project.lastUpdateAt
+						? ` (${project.lastUpdateAt.toDateString()})`
+						: ""
+				}.`
+			: "",
+		team ? `Team: ${team}.` : "No team companies linked yet.",
+		"",
+		opening(
+			opened,
+			"who to contact about it, what to draft, or where it stands",
+		),
+		"",
+		"Start with `read_project` on this project id. It returns the building, the team firms with their people and contact ids, John's dated log, linked quotes, and anything already drafted or scheduled — so you never draft twice or ask for a name you already have.",
+		"",
+		"Outreach on a project goes to the project architect first, about this project. If nobody at the firm is named yet, use `read_company_history` on the architect and, if that is thin, `read_website` on the firm's site to find the People page. Draft with `draft_email` only after loading drafting-for-john. Follow-ups and to-dos go on the CRM calendar with `propose_todo`.",
+		"",
+		await closing(),
+	]
+		.filter(Boolean)
+		.join("\n");
+
+	return { markdown, focus: { companyId: project.architect?.id ?? null } };
 }
 
 export async function noRecordPreamble(): Promise<Preamble> {

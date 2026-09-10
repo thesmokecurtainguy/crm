@@ -1,12 +1,12 @@
 import type { CarbonIcon } from "@crm/ui/components/icon";
 
-export type AgentRecordKind = "contact" | "company" | "deal";
+export type AgentRecordKind = "contact" | "company" | "deal" | "project";
 
 export type AgentRecord = { kind: AgentRecordKind; id: string };
 
 type RecordCopy = {
 	header: string;
-	field: "contactId" | "companyId" | "dealId";
+	field: "contactId" | "companyId" | "dealId" | "projectId";
 	title: string;
 	blurb: string;
 	placeholder: string;
@@ -21,6 +21,7 @@ export type AgentRecordFilter = {
 	contactId?: string;
 	companyId?: string;
 	dealId?: string;
+	projectId?: string;
 };
 
 const COPY: RecordCopyByKind = {
@@ -61,6 +62,19 @@ const COPY: RecordCopyByKind = {
 			"Where does this stand?",
 			"Who else should be involved?",
 			"What is the risk here?",
+		],
+	},
+	project: {
+		header: "x-crm-project",
+		field: "projectId",
+		title: "Ask about this project",
+		blurb:
+			"It knows the building, the team firms and their people, your log, and anything it has already drafted.",
+		placeholder: "Draft an intro to the project architect",
+		suggestions: [
+			"Who should I call about this?",
+			"Draft an intro to the project architect about a box lunch",
+			"Put a follow-up on my calendar for next week",
 		],
 	},
 };

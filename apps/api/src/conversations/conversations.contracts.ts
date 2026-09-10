@@ -42,16 +42,20 @@ const recordShape = {
 	contactId: z.string().trim().min(1).optional(),
 	companyId: z.string().trim().min(1).optional(),
 	dealId: z.string().trim().min(1).optional(),
+	projectId: z.string().trim().min(1).optional(),
 };
 
 const hasExactlyOneRecord = (input: {
 	contactId?: string;
 	companyId?: string;
 	dealId?: string;
+	projectId?: string;
 }) =>
-	[input.contactId, input.companyId, input.dealId].filter(Boolean).length === 1;
+	[input.contactId, input.companyId, input.dealId, input.projectId].filter(
+		Boolean,
+	).length === 1;
 
-const recordMessage = "Choose exactly one contact, company or deal.";
+const recordMessage = "Choose exactly one contact, company, deal or project.";
 
 export const conversationListInput = z
 	.object(recordShape)

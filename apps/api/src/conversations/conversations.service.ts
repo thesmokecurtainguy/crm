@@ -63,6 +63,7 @@ export class ConversationsService {
 				contactId: input.contactId ?? undefined,
 				companyId: input.companyId ?? undefined,
 				dealId: input.dealId ?? undefined,
+				projectId: input.projectId ?? undefined,
 			},
 			orderBy: { lastMessageAt: "desc" },
 			take: 20,
@@ -751,6 +752,7 @@ export class ConversationsService {
 			contactId: string | null;
 			companyId: string | null;
 			dealId: string | null;
+			projectId: string | null;
 		}) => {
 			if (existing.userId !== userId || existing.kind !== "RECORD") {
 				throw new NotFoundException(
@@ -759,7 +761,10 @@ export class ConversationsService {
 			}
 
 			const existingRecordId =
-				existing.contactId ?? existing.companyId ?? existing.dealId;
+				existing.contactId ??
+				existing.companyId ??
+				existing.dealId ??
+				existing.projectId;
 			if (existingRecordId !== recordId) {
 				throw new BadRequestException(
 					"A conversation cannot be moved to another CRM record.",
@@ -774,6 +779,7 @@ export class ConversationsService {
 					contactId: input.contactId ?? null,
 					companyId: input.companyId ?? null,
 					dealId: input.dealId ?? null,
+					projectId: input.projectId ?? null,
 				},
 				data: {
 					continuationToken: input.continuationToken ?? null,
@@ -801,6 +807,7 @@ export class ConversationsService {
 				contactId: true,
 				companyId: true,
 				dealId: true,
+				projectId: true,
 			},
 		});
 		let conversation: { id: string };
@@ -820,6 +827,7 @@ export class ConversationsService {
 						contactId: input.contactId ?? null,
 						companyId: input.companyId ?? null,
 						dealId: input.dealId ?? null,
+						projectId: input.projectId ?? null,
 					},
 					select: { id: true },
 				});
@@ -834,6 +842,7 @@ export class ConversationsService {
 						contactId: true,
 						companyId: true,
 						dealId: true,
+						projectId: true,
 					},
 				});
 				if (!winner) throw error;
@@ -930,15 +939,19 @@ export class ConversationsService {
 		contactId?: string;
 		companyId?: string;
 		dealId?: string;
+		projectId?: string;
 	}): string {
-		const recordIds = [input.contactId, input.companyId, input.dealId].filter(
-			(recordId): recordId is string => Boolean(recordId),
-		);
+		const recordIds = [
+			input.contactId,
+			input.companyId,
+			input.dealId,
+			input.projectId,
+		].filter((recordId): recordId is string => Boolean(recordId));
 		const [recordId] = recordIds;
 
 		if (!recordId || recordIds.length !== 1) {
 			throw new BadRequestException(
-				"Choose exactly one contact, company or deal.",
+				"Choose exactly one contact, company, deal or project.",
 			);
 		}
 
