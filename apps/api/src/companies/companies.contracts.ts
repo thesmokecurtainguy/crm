@@ -255,3 +255,19 @@ export const companySetPrimaryContactOutput = z.object({
 	id: z.string(),
 	primaryContactId: z.string().nullable(),
 });
+
+export const companyFillEmailsInput = z.object({
+	id: z.string(),
+	dryRun: z.boolean().default(false),
+	minEvidence: z.number().int().min(1).max(5).default(2),
+});
+
+export const companyFillEmailsOutput = z.object({
+	companyId: z.string(),
+	domain: z.string().nullable(),
+	pattern: z.string().nullable(),
+	evidence: z.number(),
+	filled: z.number(),
+	skipped: z.number(),
+	reason: z.string().nullable(),
+});

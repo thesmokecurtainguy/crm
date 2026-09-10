@@ -35,7 +35,7 @@ function useGutter(): GutterState {
 	return ctx;
 }
 
-function useCurrentRecord(): AgentRecord | null {
+function useCurrentRecord(): AgentRecord {
 	const pathname = usePathname();
 	const { stack } = useRecordStack();
 	return useMemo(() => {
@@ -43,7 +43,7 @@ function useCurrentRecord(): AgentRecord | null {
 		if (top) return { kind: top.kind, id: top.id };
 		const match = /\/projects\/([^/?#]+)/.exec(pathname ?? "");
 		if (match?.[1]) return { kind: "project", id: match[1] };
-		return null;
+		return { kind: "workspace", id: "workspace" };
 	}, [stack, pathname]);
 }
 
@@ -71,9 +71,9 @@ export function AgentGutter() {
 				<Logo className="size-4" />
 				<div className="min-w-0 flex-1">
 					<div className="truncate font-medium text-sm">
-						{record ? recordCopy(record.kind).title : "Agent"}
+						{recordCopy(record.kind).title}
 					</div>
-					{record ? <RecordName record={record} /> : null}
+					{record.kind === "workspace" ? null : <RecordName record={record} />}
 				</div>
 				<Button
 					variant="ghost"

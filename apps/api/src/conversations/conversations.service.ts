@@ -60,10 +60,11 @@ export class ConversationsService {
 		const rows = await this.db.agentConversation.findMany({
 			where: {
 				userId,
-				contactId: input.contactId ?? undefined,
-				companyId: input.companyId ?? undefined,
-				dealId: input.dealId ?? undefined,
-				projectId: input.projectId ?? undefined,
+				kind: "RECORD",
+				contactId: input.workspace ? null : (input.contactId ?? undefined),
+				companyId: input.workspace ? null : (input.companyId ?? undefined),
+				dealId: input.workspace ? null : (input.dealId ?? undefined),
+				projectId: input.workspace ? null : (input.projectId ?? undefined),
 			},
 			orderBy: { lastMessageAt: "desc" },
 			take: 20,
@@ -764,7 +765,8 @@ export class ConversationsService {
 				existing.contactId ??
 				existing.companyId ??
 				existing.dealId ??
-				existing.projectId;
+				existing.projectId ??
+				"workspace";
 			if (existingRecordId !== recordId) {
 				throw new BadRequestException(
 					"A conversation cannot be moved to another CRM record.",
@@ -940,6 +942,7 @@ export class ConversationsService {
 		companyId?: string;
 		dealId?: string;
 		projectId?: string;
+		workspace?: boolean;
 	}): string {
 		const recordIds = [
 			input.contactId,
@@ -947,6 +950,7 @@ export class ConversationsService {
 			input.dealId,
 			input.projectId,
 		].filter((recordId): recordId is string => Boolean(recordId));
+		if (input.workspace && recordIds.length === 0) return "workspace";
 		const [recordId] = recordIds;
 
 		if (!recordId || recordIds.length !== 1) {

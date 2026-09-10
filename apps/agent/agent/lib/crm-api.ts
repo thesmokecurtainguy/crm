@@ -15,6 +15,49 @@ export function writesEnabled(): boolean {
 	return Boolean(KEY && BASE);
 }
 
+export async function crmCall<T>(
+	path: string,
+	body: unknown,
+): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+	if (!KEY || !BASE) {
+		return {
+			ok: false,
+			error:
+				"Write tools are not configured on this install (CRM_API_KEY or API_URL missing).",
+		};
+	}
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), 20_000);
+	try {
+		const response = await fetch(`${BASE}/rest${path}`, {
+			method: "POST",
+			headers: { "content-type": "application/json", "x-api-key": KEY },
+			body: JSON.stringify(body),
+			signal: controller.signal,
+		});
+		const text = await response.text();
+		let parsed: unknown = null;
+		try {
+			parsed = text ? JSON.parse(text) : null;
+		} catch {}
+		if (!response.ok) {
+			const message =
+				(parsed as { message?: string } | null)?.message ??
+				(parsed as { error?: { message?: string } } | null)?.error?.message ??
+				text.slice(0, 300);
+			return { ok: false, error: `${response.status}: ${message}` };
+		}
+		return { ok: true, data: parsed as T };
+	} catch (error) {
+		return {
+			ok: false,
+			error: error instanceof Error ? error.message : String(error),
+		};
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
 export async function crmPost(path: string, body: unknown): Promise<CrmWrite> {
 	if (!KEY || !BASE) {
 		return {

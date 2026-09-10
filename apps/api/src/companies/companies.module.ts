@@ -6,6 +6,7 @@ import { TrpcModule } from "../trpc/trpc.module";
 import { CompaniesRouter } from "./companies.router";
 import { CompaniesService } from "./companies.service";
 import { CompanyDirectoryService } from "./company-directory.service";
+import { EmailPatternService } from "./email-pattern.service";
 import { FaviconService } from "./favicon.service";
 
 @Module({
@@ -15,7 +16,13 @@ import { FaviconService } from "./favicon.service";
 		CompanyDirectoryService,
 		CompaniesRouter,
 		FaviconService,
+		EmailPatternService,
 	],
-	exports: [CompaniesService, CompanyDirectoryService, FaviconService],
+	exports: [
+		CompaniesService,
+		CompanyDirectoryService,
+		FaviconService,
+		EmailPatternService,
+	],
 })
 export class CompaniesModule {}

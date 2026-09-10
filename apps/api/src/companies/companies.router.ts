@@ -19,6 +19,8 @@ import {
 	companyCreateInput,
 	companyDetailOutput,
 	companyEnrichOutput,
+	companyFillEmailsInput,
+	companyFillEmailsOutput,
 	companyIdInput,
 	companyListInput,
 	companyListOutput,
@@ -31,12 +33,14 @@ import {
 	setPrimaryContactInput,
 } from "./companies.contracts";
 import { CompaniesService } from "./companies.service";
+import { EmailPatternService } from "./email-pattern.service";
 
 @Router({ alias: "companies" })
 @UseMiddlewares(AuthMiddleware)
 export class CompaniesRouter {
 	constructor(
 		@Inject(CompaniesService) private readonly companies: CompaniesService,
+		@Inject(EmailPatternService) private readonly emails: EmailPatternService,
 	) {}
 
 	@Query({
@@ -163,6 +167,18 @@ export class CompaniesRouter {
 	})
 	async enrich(@Input("id") id: string) {
 		return this.companies.enrich(id);
+	}
+
+	@Mutation({
+		input: companyFillEmailsInput,
+		output: companyFillEmailsOutput,
+		meta: restMeta("POST", "/companies/{id}/fill-emails", ["Companies"]),
+	})
+	async fillEmails(@Input() input: z.infer<typeof companyFillEmailsInput>) {
+		return this.emails.fill(input.id, {
+			dryRun: input.dryRun,
+			minEvidence: input.minEvidence,
+		});
 	}
 
 	@Mutation({

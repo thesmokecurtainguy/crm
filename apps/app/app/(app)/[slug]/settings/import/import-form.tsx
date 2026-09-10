@@ -226,6 +226,7 @@ type Summary = {
 	contactsCreated: number;
 	contactsSkipped: number;
 	notesLogged: number;
+	emailsFilled: number;
 	errors: string[];
 };
 
@@ -238,6 +239,7 @@ function emptySummary(): Summary {
 		contactsCreated: 0,
 		contactsSkipped: 0,
 		notesLogged: 0,
+		emailsFilled: 0,
 		errors: [],
 	};
 }
@@ -269,6 +271,7 @@ export function ImportForm() {
 	const createField = useMutation(trpc.fields.create.mutationOptions());
 	const upsertProject = useMutation(trpc.projects.upsert.mutationOptions());
 	const createActivity = useMutation(trpc.activities.create.mutationOptions());
+	const fillEmails = useMutation(trpc.companies.fillEmails.mutationOptions());
 
 	const running = progress !== null && summary === null;
 
@@ -587,6 +590,13 @@ export function ImportForm() {
 				}
 				setProgress({ done: index + 1, total: table.rows.length });
 			}
+		}
+
+		for (const companyId of new Set(companyIds.values())) {
+			try {
+				const outcome = await fillEmails.mutateAsync({ id: companyId });
+				result.emailsFilled += outcome.filled;
+			} catch {}
 		}
 
 		await cache.fields();
