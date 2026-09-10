@@ -516,7 +516,9 @@ function useSavedConversation({
 				continuationToken: token,
 				streamIndex,
 				messageCount: messages,
-				title: isNew ? (opening.current ?? undefined) : undefined,
+				title: isNew
+					? (opening.current?.slice(0, 120) ?? undefined)
+					: undefined,
 			},
 			{
 				onSuccess: () => {

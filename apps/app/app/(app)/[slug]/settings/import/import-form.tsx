@@ -17,7 +17,7 @@ import {
 } from "@crm/ui/components/select";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
@@ -48,7 +48,10 @@ type Target =
 	| "email"
 	| "phone"
 	| "title"
-	| "linkedin";
+	| "linkedin"
+	| "noteDate"
+	| "noteSubject"
+	| "note";
 
 const TARGETS: { key: Target; label: string; hint?: string }[] = [
 	{ key: "companyName", label: "Company name" },
@@ -68,6 +71,13 @@ const TARGETS: { key: Target; label: string; hint?: string }[] = [
 	{ key: "phone", label: "Contact phone" },
 	{ key: "title", label: "Job title" },
 	{ key: "linkedin", label: "Contact LinkedIn" },
+	{
+		key: "noteDate",
+		label: "Note date",
+		hint: "With a note, logs a dated meeting on the contact and the company",
+	},
+	{ key: "noteSubject", label: "Note subject" },
+	{ key: "note", label: "Note" },
 ];
 
 const AUTO: Record<Target, string[]> = {
@@ -114,6 +124,21 @@ const AUTO: Record<Target, string[]> = {
 		"linkedin url",
 		"linkedin profile",
 	],
+	noteDate: [
+		"note date",
+		"meeting date",
+		"presentation date",
+		"completion_date",
+		"date",
+	],
+	noteSubject: [
+		"note subject",
+		"meeting",
+		"presentation",
+		"course_name",
+		"subject",
+	],
+	note: ["note", "notes", "body", "details"],
 };
 
 function autoMap(headers: string[]): Partial<Record<Target, string>> {
@@ -169,6 +194,16 @@ function normalizeLinkedin(raw: string): string {
 	return `https://www.${v.replace(/^www\./, "")}`;
 }
 
+function noteDate(raw: string): string | null {
+	const v = raw.trim();
+	if (!v) return null;
+	const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+	const date = iso
+		? new Date(`${v}T12:00:00`)
+		: new Date(v.replace(/(\d+)(st|nd|rd|th)/, "$1"));
+	return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 function domainFromEmail(email: string): string {
 	const at = email.indexOf("@");
 	return at > 0 ? email.slice(at + 1).toLowerCase() : "";
@@ -181,6 +216,7 @@ type Summary = {
 	companiesMatched: number;
 	contactsCreated: number;
 	contactsSkipped: number;
+	notesLogged: number;
 	errors: string[];
 };
 
@@ -192,6 +228,7 @@ function emptySummary(): Summary {
 		companiesMatched: 0,
 		contactsCreated: 0,
 		contactsSkipped: 0,
+		notesLogged: 0,
 		errors: [],
 	};
 }
@@ -214,6 +251,7 @@ export function ImportForm() {
 		total: number;
 	} | null>(null);
 	const [summary, setSummary] = useState<Summary | null>(null);
+	const companyNotes = useRef(new Set<string>());
 
 	const createCompany = useMutation(trpc.companies.create.mutationOptions());
 	const updateCompany = useMutation(trpc.companies.update.mutationOptions());
@@ -221,6 +259,7 @@ export function ImportForm() {
 	const updateContact = useMutation(trpc.contacts.update.mutationOptions());
 	const createField = useMutation(trpc.fields.create.mutationOptions());
 	const upsertProject = useMutation(trpc.projects.upsert.mutationOptions());
+	const createActivity = useMutation(trpc.activities.create.mutationOptions());
 
 	const running = progress !== null && summary === null;
 
@@ -390,7 +429,7 @@ export function ImportForm() {
 		if (!first) return;
 
 		const email = col(row, "email").toLowerCase();
-		let contactId: string;
+		let contactId: string | null = null;
 		try {
 			const created = await createContact.mutateAsync({
 				firstName: first,
@@ -404,11 +443,12 @@ export function ImportForm() {
 			result.contactsCreated++;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			if (/already uses/i.test(message)) {
-				result.contactsSkipped++;
-				return;
-			}
-			throw error;
+			if (!/already uses/i.test(message)) throw error;
+			result.contactsSkipped++;
+			contactId = email ? await findContactByEmail(email) : null;
+			if (!contactId) return;
+			await logNote(row, contactId, companyId, result);
+			return;
 		}
 
 		const linkedin = normalizeLinkedin(col(row, "linkedin"));
@@ -419,12 +459,56 @@ export function ImportForm() {
 				fields: { [SOURCE_FIELD_KEY]: tag },
 			},
 		});
+		await logNote(row, contactId, companyId, result);
+	}
+
+	async function findContactByEmail(email: string): Promise<string | null> {
+		const page = await queryClient.fetchQuery(
+			trpc.contacts.list.queryOptions({ q: email, pageSize: 5 }),
+		);
+		const hit = page.rows.find((c) => (c.email ?? "").toLowerCase() === email);
+		return hit?.id ?? null;
+	}
+
+	async function logNote(
+		row: Record<string, string>,
+		contactId: string,
+		companyId: string | null,
+		result: Summary,
+	) {
+		const body = col(row, "note");
+		const subject = col(row, "noteSubject");
+		if (!body && !subject) return;
+		const occurredAt = noteDate(col(row, "noteDate"));
+		await createActivity.mutateAsync({
+			type: "MEETING",
+			subject: subject || undefined,
+			body: body || undefined,
+			occurredAt: occurredAt ?? undefined,
+			contactId,
+		});
+		result.notesLogged++;
+
+		if (companyId && subject) {
+			const key = `${companyId}|${subject}|${occurredAt ?? ""}`;
+			if (!companyNotes.current.has(key)) {
+				companyNotes.current.add(key);
+				await createActivity.mutateAsync({
+					type: "MEETING",
+					subject,
+					body: body || undefined,
+					occurredAt: occurredAt ?? undefined,
+					companyId,
+				});
+			}
+		}
 	}
 
 	async function run() {
 		if (!table) return;
 		const tag = source.trim();
 		const result = emptySummary();
+		companyNotes.current = new Set();
 		setSummary(null);
 		setProgress({
 			done: 0,
