@@ -11,7 +11,7 @@ import { requireSession } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 import { DashboardSummary } from "../dashboard-summary";
-import { HomeTabs } from "../home-tabs";
+import { HomeTabs, HomeTabsFallback } from "../home-tabs";
 import {
 	OverviewGreeting,
 	OverviewGreetingFallback,
@@ -23,6 +23,7 @@ import {
 import { loadOverviewSearchParams } from "../overview-search-params";
 
 export default function OverviewPage({
+	params,
 	searchParams,
 }: PageProps<"/[slug]/overview">) {
 	return (
@@ -34,7 +35,9 @@ export default function OverviewPage({
 					</Suspense>
 				</PageShellHeading>
 				<PageShellActions>
-					<HomeTabs active="overview" />
+					<Suspense fallback={<HomeTabsFallback active="overview" />}>
+						<HomeTabs active="overview" params={params} />
+					</Suspense>
 					<Suspense fallback={<OverviewScopeToggleFallback />}>
 						<OverviewScopeToggle />
 					</Suspense>

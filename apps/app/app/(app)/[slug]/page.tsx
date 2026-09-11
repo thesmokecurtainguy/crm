@@ -10,14 +10,14 @@ import {
 import { requireSession } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
-import { HomeTabs } from "./home-tabs";
+import { HomeTabs, HomeTabsFallback } from "./home-tabs";
 import {
 	OverviewGreeting,
 	OverviewGreetingFallback,
 } from "./overview-greeting";
 import { TodayView } from "./today-view";
 
-export default function TodayPage() {
+export default function TodayPage({ params }: PageProps<"/[slug]">) {
 	return (
 		<PageShell>
 			<PageShellHeader>
@@ -27,7 +27,9 @@ export default function TodayPage() {
 					</Suspense>
 				</PageShellHeading>
 				<PageShellActions>
-					<HomeTabs active="today" />
+					<Suspense fallback={<HomeTabsFallback active="today" />}>
+						<HomeTabs active="today" params={params} />
+					</Suspense>
 				</PageShellActions>
 			</PageShellHeader>
 
