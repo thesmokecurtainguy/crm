@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
 	PageShell,
 	PageShellContent,
 	PageShellDescription,
 	PageShellHeader,
 	PageShellHeading,
+	PageShellLoading,
 	PageShellTitle,
 } from "@/components/page-shell";
 import { requireSession } from "@/lib/session";
@@ -14,9 +16,7 @@ export const metadata: Metadata = {
 	title: "Signature",
 };
 
-export default async function SignatureSettingsPage() {
-	await requireSession();
-
+export default function SignatureSettingsPage() {
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
@@ -31,8 +31,16 @@ export default async function SignatureSettingsPage() {
 			</PageShellHeader>
 
 			<PageShellContent className="min-h-0">
-				<SignatureEditor />
+				<Suspense fallback={<PageShellLoading />}>
+					<Signature />
+				</Suspense>
 			</PageShellContent>
 		</PageShell>
 	);
+}
+
+async function Signature() {
+	await requireSession();
+
+	return <SignatureEditor />;
 }
