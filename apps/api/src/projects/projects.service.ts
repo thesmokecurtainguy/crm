@@ -102,6 +102,36 @@ const DETAIL_SELECT = {
 	},
 } satisfies Prisma.ProjectSelect;
 
+const LINK_SELECT = {
+	id: true,
+	name: true,
+	stage: true,
+	leadStatus: true,
+	city: true,
+	stateCode: true,
+	value: true,
+	floors: true,
+	bidDate: true,
+	lastUpdateAt: true,
+	architectId: true,
+	gcId: true,
+	developerId: true,
+} satisfies Prisma.ProjectSelect;
+
+const PARTICIPANT_SELECT = {
+	role: true,
+	company: { select: { id: true } },
+	contact: {
+		select: {
+			id: true,
+			firstName: true,
+			lastName: true,
+			email: true,
+			phone: true,
+		},
+	},
+} satisfies Prisma.ProjectParticipantSelect;
+
 type RowRecord = Prisma.ProjectGetPayload<{ select: typeof ROW_SELECT }>;
 type DetailRecord = Prisma.ProjectGetPayload<{ select: typeof DETAIL_SELECT }>;
 
@@ -384,6 +414,115 @@ export class ProjectsService {
 			});
 		}
 		return out;
+	}
+
+	async forCompany(companyId: string) {
+		const projects = await this.db.project.findMany({
+			where: {
+				archivedAt: null,
+				OR: [
+					{ architectId: companyId },
+					{ gcId: companyId },
+					{ developerId: companyId },
+					{ projectParticipants: { some: { companyId } } },
+					{ projectParticipants: { some: { contact: { companyId } } } },
+				],
+			},
+			orderBy: [
+				{ lastUpdateAt: { sort: "desc", nulls: "last" } },
+				{ updatedAt: "desc" },
+			],
+			take: 50,
+			select: {
+				...LINK_SELECT,
+				projectParticipants: {
+					where: { OR: [{ companyId }, { contact: { companyId } }] },
+					select: PARTICIPANT_SELECT,
+				},
+			},
+		});
+		return projects.map((p) => this.toLink(p, companyId));
+	}
+
+	async forContact(contactId: string) {
+		const contact = await this.db.contact.findUnique({
+			where: { id: contactId },
+			select: { companyId: true },
+		});
+		const companyId = contact?.companyId ?? null;
+		const projects = await this.db.project.findMany({
+			where: {
+				archivedAt: null,
+				OR: [
+					{ projectParticipants: { some: { contactId } } },
+					...(companyId
+						? [
+								{ architectId: companyId },
+								{ gcId: companyId },
+								{ developerId: companyId },
+							]
+						: []),
+				],
+			},
+			orderBy: [
+				{ lastUpdateAt: { sort: "desc", nulls: "last" } },
+				{ updatedAt: "desc" },
+			],
+			take: 50,
+			select: {
+				...LINK_SELECT,
+				projectParticipants: {
+					where: companyId
+						? { OR: [{ companyId }, { contact: { companyId } }] }
+						: { contactId },
+					select: PARTICIPANT_SELECT,
+				},
+			},
+		});
+		return projects.map((p) => this.toLink(p, companyId));
+	}
+
+	private toLink(
+		p: Prisma.ProjectGetPayload<{
+			select: typeof LINK_SELECT & {
+				projectParticipants: { select: typeof PARTICIPANT_SELECT };
+			};
+		}>,
+		companyId: string | null,
+	) {
+		const roles: string[] = [];
+		if (companyId) {
+			if (p.architectId === companyId) roles.push("Architect");
+			if (p.gcId === companyId) roles.push("General contractor");
+			if (p.developerId === companyId) roles.push("Developer");
+		}
+		for (const part of p.projectParticipants) {
+			if (part.company && !roles.includes(part.role)) roles.push(part.role);
+		}
+		return {
+			id: p.id,
+			name: p.name,
+			stage: p.stage,
+			leadStatus: p.leadStatus,
+			city: p.city,
+			stateCode: p.stateCode,
+			value: p.value === null ? null : p.value.toNumber(),
+			floors: p.floors,
+			bidDate: iso(p.bidDate),
+			lastUpdateAt: iso(p.lastUpdateAt),
+			roles,
+			people: p.projectParticipants
+				.filter((part) => part.contact)
+				.map((part) => ({
+					id: part.contact?.id ?? "",
+					name: [part.contact?.firstName, part.contact?.lastName]
+						.filter(Boolean)
+						.join(" "),
+					role: part.role,
+					email: part.contact?.email ?? null,
+					phone: part.contact?.phone ?? null,
+				})),
+		};
 	}
 
 	async participants(projectId: string) {

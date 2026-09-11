@@ -268,3 +268,31 @@ export const participantAddInput = z
 	});
 
 export const participantRemoveInput = z.object({ id: z.string() });
+
+export const projectLinkOutput = z.array(
+	z.object({
+		id: z.string(),
+		name: z.string(),
+		stage: projectStage,
+		leadStatus: leadStatus,
+		city: z.string().nullable(),
+		stateCode: z.string().nullable(),
+		value: z.number().nullable(),
+		floors: z.number().nullable(),
+		bidDate: z.string().nullable(),
+		lastUpdateAt: z.string().nullable(),
+		roles: z.array(z.string()),
+		people: z.array(
+			z.object({
+				id: z.string(),
+				name: z.string(),
+				role: z.string(),
+				email: z.string().nullable(),
+				phone: z.string().nullable(),
+			}),
+		),
+	}),
+);
+
+export const projectsForCompanyInput = z.object({ companyId: z.string() });
+export const projectsForContactInput = z.object({ contactId: z.string() });

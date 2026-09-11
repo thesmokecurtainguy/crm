@@ -34,6 +34,7 @@ import {
 	savingValue,
 } from "@/components/crm/inline-field";
 import { OwnerCell } from "@/components/crm/owner-cell";
+import { RecordProjects } from "@/components/crm/record-projects";
 import { CompanySocials } from "@/components/crm/social-links";
 import { DealStageMenu } from "@/components/crm/stage-change";
 import { Timeline } from "@/components/crm/timeline/timeline";
@@ -200,6 +201,11 @@ export function CompanySheet({ companyId }: { companyId: string }) {
 							onDone={() => setAdding(null)}
 						/>
 					),
+				},
+				{
+					value: "projects",
+					label: "Projects",
+					content: <RecordProjects companyId={company.id} />,
 				},
 				{
 					value: "activity",

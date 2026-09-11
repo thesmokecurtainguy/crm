@@ -14,12 +14,15 @@ import {
 	projectCreateInput,
 	projectDetailOutput,
 	projectIdInput,
+	projectLinkOutput,
 	projectListInput,
 	projectListOutput,
 	projectOptionOutput,
 	projectOptionsInput,
 	projectPeopleOutput,
 	projectSummaryOutput,
+	projectsForCompanyInput,
+	projectsForContactInput,
 	projectTriageInput,
 	projectUpdateArgs,
 	projectUpsertInput,
@@ -67,6 +70,24 @@ export class ProjectsRouter {
 	})
 	async people(@Input("id") id: string) {
 		return this.projects.people(id);
+	}
+
+	@Query({
+		input: projectsForCompanyInput,
+		output: projectLinkOutput,
+		meta: restMeta("GET", "/companies/{companyId}/projects", ["Projects"]),
+	})
+	async forCompany(@Input("companyId") companyId: string) {
+		return this.projects.forCompany(companyId);
+	}
+
+	@Query({
+		input: projectsForContactInput,
+		output: projectLinkOutput,
+		meta: restMeta("GET", "/contacts/{contactId}/projects", ["Projects"]),
+	})
+	async forContact(@Input("contactId") contactId: string) {
+		return this.projects.forContact(contactId);
 	}
 
 	@Query({
