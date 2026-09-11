@@ -36,6 +36,7 @@ import {
 	projectsForCompanyInput,
 	projectsForContactInput,
 	projectTriageInput,
+	projectUpcomingOutput,
 	projectUpdateArgs,
 	projectUpsertInput,
 } from "./projects.contracts";
@@ -83,6 +84,15 @@ export class ProjectsRouter {
 	})
 	async people(@Input("id") id: string) {
 		return this.projects.people(id);
+	}
+
+	@Query({
+		input: projectIdInput,
+		output: projectUpcomingOutput,
+		meta: restMeta("GET", "/projects/{id}/upcoming", ["Projects"]),
+	})
+	async upcoming(@Input("id") id: string) {
+		return this.projects.upcoming(id);
 	}
 
 	@Query({

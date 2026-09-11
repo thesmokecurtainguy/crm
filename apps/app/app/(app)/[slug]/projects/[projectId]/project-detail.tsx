@@ -5,8 +5,10 @@ import ArrowLeft from "@carbon/icons-react/es/ArrowLeft";
 import ChevronDown from "@carbon/icons-react/es/ChevronDown";
 import ChevronRight from "@carbon/icons-react/es/ChevronRight";
 import Close from "@carbon/icons-react/es/Close";
+import Email from "@carbon/icons-react/es/Email";
 import Launch from "@carbon/icons-react/es/Launch";
 import Merge from "@carbon/icons-react/es/Merge";
+import Time from "@carbon/icons-react/es/Time";
 import Undo from "@carbon/icons-react/es/Undo";
 import type { DealStage, LeadStatus, ProjectStage } from "@crm/db/enums";
 import { Button } from "@crm/ui/components/button";
@@ -240,6 +242,24 @@ export function ProjectDetail({ id }: { id: string }) {
 	const participants = useQuery(
 		trpc.projects.participants.queryOptions({ id }),
 	);
+	const upcoming = useQuery(trpc.projects.upcoming.queryOptions({ id }));
+
+	const createFollowUp = useMutation(
+		trpc.activities.create.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: trpc.projects.upcoming.queryKey({ id }),
+				});
+				setFollowUp(null);
+				setFollowUpDate("");
+				setFollowUpNote("");
+				toast.success(
+					"Follow-up scheduled. It's on your list and in the brief.",
+				);
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
 	const users = useQuery(trpc.users.list.queryOptions());
 
 	const [draft, setDraft] = useState<Draft | null>(null);
@@ -260,6 +280,12 @@ export function ProjectDetail({ id }: { id: string }) {
 	const [rosterOpen, setRosterOpen] = useState<Set<string>>(new Set());
 	const [compose, setCompose] = useState<ComposeContext | null>(null);
 	const [merging, setMerging] = useState(false);
+	const [followUp, setFollowUp] = useState<{
+		contactId: string | null;
+		name: string;
+	} | null>(null);
+	const [followUpDate, setFollowUpDate] = useState("");
+	const [followUpNote, setFollowUpNote] = useState("");
 	const [personRole, setPersonRole] = useState("Project architect");
 	const [firmRole, setFirmRole] = useState("Architect");
 	const [firmId, setFirmId] = useState("");
@@ -640,13 +666,35 @@ export function ProjectDetail({ id }: { id: string }) {
 												</a>
 											) : null}
 											{p.contact?.email ? (
-												<a
-													href={`mailto:${p.contact.email}`}
-													className="hover:underline"
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() =>
+														setCompose({
+															to: p.contact?.email ?? null,
+															contactId: p.contact?.id ?? null,
+															companyId: p.contact?.company?.id ?? null,
+															projectId: id,
+														})
+													}
 												>
-													{p.contact.email}
-												</a>
+													<Email data-icon="inline-start" />
+													Email
+												</Button>
 											) : null}
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() =>
+													setFollowUp({
+														contactId: p.contact?.id ?? null,
+														name: p.contact?.name ?? current.name,
+													})
+												}
+											>
+												<Time data-icon="inline-start" />
+												Follow up
+											</Button>
 											<Button
 												variant="ghost"
 												size="icon-sm"
@@ -772,6 +820,108 @@ export function ProjectDetail({ id }: { id: string }) {
 							</div>
 						);
 					})}
+				</Section>
+
+				<Section
+					id="upcoming"
+					title="Upcoming"
+					collapsed={collapsed}
+					onToggle={toggleSection}
+					action={
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={() =>
+								setFollowUp({ contactId: null, name: current.name })
+							}
+						>
+							Schedule a follow-up
+						</Button>
+					}
+				>
+					{(upcoming.data ?? []).length === 0 ? (
+						<p className="text-muted-foreground text-sm">
+							Nothing scheduled. Meetings with the people on this project and
+							any follow-ups you set show up here.
+						</p>
+					) : (
+						<ul className="divide-y text-sm">
+							{(upcoming.data ?? []).map((item) => (
+								<li
+									key={`${item.kind}-${item.id}`}
+									className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5"
+								>
+									<span className="text-muted-foreground text-xs uppercase">
+										{item.kind === "event" ? "Meeting" : "To-do"}
+									</span>
+									<span className="min-w-0 truncate font-medium">
+										{item.title}
+									</span>
+									{item.who ? (
+										<span className="text-muted-foreground">{item.who}</span>
+									) : null}
+									<span className="ml-auto text-muted-foreground">
+										{item.startsAt ? (
+											<LocalDay date={item.startsAt} />
+										) : (
+											"No date"
+										)}
+									</span>
+								</li>
+							))}
+						</ul>
+					)}
+
+					{followUp ? (
+						<FieldGroup className="border-t pt-3">
+							<Field>
+								<FieldLabel>Follow up with {followUp.name}</FieldLabel>
+								<div className="flex flex-wrap items-center gap-2">
+									<Input
+										type="date"
+										value={followUpDate}
+										onChange={(event) => setFollowUpDate(event.target.value)}
+										className="w-[170px]"
+									/>
+									<Input
+										value={followUpNote}
+										onChange={(event) => setFollowUpNote(event.target.value)}
+										placeholder="What for? e.g. call about the box lunch"
+										className="min-w-[240px] flex-1"
+									/>
+									<Button
+										size="sm"
+										disabled={!followUpDate || createFollowUp.isPending}
+										onClick={() =>
+											createFollowUp.mutate({
+												type: "TASK",
+												subject:
+													followUpNote.trim() || `Follow up on ${current.name}`,
+												dueAt: new Date(
+													`${followUpDate}T09:00:00`,
+												).toISOString(),
+												projectId: id,
+												contactId: followUp.contactId ?? undefined,
+												companyId: current.architect?.id ?? undefined,
+											})
+										}
+									>
+										{createFollowUp.isPending ? (
+											<Spinner data-icon="inline-start" />
+										) : null}
+										Schedule
+									</Button>
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={() => setFollowUp(null)}
+									>
+										Cancel
+									</Button>
+								</div>
+							</Field>
+						</FieldGroup>
+					) : null}
 				</Section>
 
 				<Section

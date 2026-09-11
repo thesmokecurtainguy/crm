@@ -338,3 +338,15 @@ export const duplicatePairOutput = z.array(
 		}),
 	}),
 );
+
+export const projectUpcomingOutput = z.array(
+	z.object({
+		kind: z.enum(["event", "task"]),
+		id: z.string(),
+		title: z.string(),
+		startsAt: z.string().nullable(),
+		endsAt: z.string().nullable(),
+		who: z.string().nullable(),
+		done: z.boolean(),
+	}),
+);

@@ -433,6 +433,111 @@ export class ProjectsService {
 		return out;
 	}
 
+	async upcoming(projectId: string) {
+		const project = await this.db.project.findUnique({
+			where: { id: projectId },
+			select: {
+				architectId: true,
+				gcId: true,
+				developerId: true,
+				projectParticipants: { select: { contactId: true } },
+			},
+		});
+		if (!project) throw new NotFoundException("No such project.");
+
+		const contactIds = project.projectParticipants
+			.map((p) => p.contactId)
+			.filter((id): id is string => Boolean(id));
+		const companyIds = [
+			project.architectId,
+			project.gcId,
+			project.developerId,
+		].filter((id): id is string => Boolean(id));
+		const now = new Date();
+		const horizon = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+		const [events, tasks] = await Promise.all([
+			contactIds.length || companyIds.length
+				? this.db.calendarEvent.findMany({
+						where: {
+							startsAt: {
+								gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+								lte: horizon,
+							},
+							OR: [
+								...(contactIds.length
+									? [{ contactId: { in: contactIds } }]
+									: []),
+								...(companyIds.length
+									? [{ companyId: { in: companyIds } }]
+									: []),
+							],
+						},
+						orderBy: { startsAt: "asc" },
+						take: 20,
+						select: {
+							id: true,
+							title: true,
+							startsAt: true,
+							endsAt: true,
+							contact: { select: { firstName: true, lastName: true } },
+							company: { select: { name: true } },
+						},
+					})
+				: [],
+			this.db.activity.findMany({
+				where: {
+					type: "TASK",
+					completedAt: null,
+					OR: [
+						{ projectId },
+						...(contactIds.length ? [{ contactId: { in: contactIds } }] : []),
+					],
+				},
+				orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }],
+				take: 20,
+				select: {
+					id: true,
+					subject: true,
+					dueAt: true,
+					completedAt: true,
+					contact: { select: { firstName: true, lastName: true } },
+				},
+			}),
+		]);
+
+		const rows = [
+			...events.map((event) => ({
+				kind: "event" as const,
+				id: event.id,
+				title: event.title ?? "(untitled)",
+				startsAt: iso(event.startsAt),
+				endsAt: iso(event.endsAt),
+				who:
+					[event.contact?.firstName, event.contact?.lastName]
+						.filter(Boolean)
+						.join(" ") ||
+					event.company?.name ||
+					null,
+				done: false,
+			})),
+			...tasks.map((task) => ({
+				kind: "task" as const,
+				id: task.id,
+				title: task.subject ?? "Task",
+				startsAt: iso(task.dueAt),
+				endsAt: null,
+				who:
+					[task.contact?.firstName, task.contact?.lastName]
+						.filter(Boolean)
+						.join(" ") || null,
+				done: Boolean(task.completedAt),
+			})),
+		];
+		rows.sort((a, b) => (a.startsAt ?? "9").localeCompare(b.startsAt ?? "9"));
+		return rows.slice(0, 25);
+	}
+
 	async duplicates() {
 		const rows = await this.db.project.findMany({
 			where: { archivedAt: null },
