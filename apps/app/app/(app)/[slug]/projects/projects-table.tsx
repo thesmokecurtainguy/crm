@@ -44,6 +44,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 import { ProjectDuplicates } from "./project-duplicates";
+import { BoardToggle, ProjectsBoard } from "./projects-board";
 import { projectsSearchParams } from "./projects-search-params";
 
 type ProjectRow = RouterOutputs["projects"]["list"]["rows"][number];
@@ -283,6 +284,7 @@ export function ProjectsTable() {
 
 	const me = useQuery(trpc.users.me.queryOptions());
 	const [assignRole, setAssignRole] = useState("Project architect");
+	const [board, setBoard] = useState(false);
 
 	const bulkOwner = useMutation(
 		trpc.projects.bulkSetOwner.mutationOptions({
@@ -355,6 +357,17 @@ export function ProjectsTable() {
 		[input.archived],
 	);
 
+	if (input.status === "pipeline" && board) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col gap-3">
+				<div className="flex justify-end">
+					<BoardToggle board={board} onToggle={() => setBoard(false)} />
+				</div>
+				<ProjectsBoard />
+			</div>
+		);
+	}
+
 	if (input.status === "duplicates") {
 		return (
 			<DataTable
@@ -388,18 +401,23 @@ export function ProjectsTable() {
 			query={query}
 			search={<ListSearch placeholder="Search projects, cities, architects…" />}
 			actions={
-				<Button
-					variant={input.archived ? "contrast" : "outline"}
-					size="sm"
-					className="justify-start sm:justify-center"
-					onClick={() => {
-						selection.clear();
-						setArchived(!input.archived);
-					}}
-				>
-					<Archive data-icon="inline-start" />
-					Archived
-				</Button>
+				<>
+					{input.status === "pipeline" ? (
+						<BoardToggle board={board} onToggle={() => setBoard(true)} />
+					) : null}
+					<Button
+						variant={input.archived ? "contrast" : "outline"}
+						size="sm"
+						className="justify-start sm:justify-center"
+						onClick={() => {
+							selection.clear();
+							setArchived(!input.archived);
+						}}
+					>
+						<Archive data-icon="inline-start" />
+						Archived
+					</Button>
+				</>
 			}
 			columns={columns}
 			rows={rows}

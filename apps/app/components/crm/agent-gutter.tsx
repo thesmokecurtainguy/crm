@@ -50,6 +50,11 @@ function useCurrentRecord(): AgentRecord {
 export function AgentGutter() {
 	const { open, setOpen } = useGutter();
 	const record = useCurrentRecord();
+	const pathname = usePathname();
+	const { stack } = useRecordStack();
+
+	const onChatPage = /\/chat(\/|$)/.test(pathname ?? "") && stack.length === 0;
+	if (onChatPage) return null;
 
 	if (!open) {
 		return (
