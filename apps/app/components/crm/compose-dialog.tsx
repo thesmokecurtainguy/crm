@@ -180,7 +180,7 @@ export function ComposeDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-h-[92vh] w-[min(96vw,1100px)] max-w-none overflow-y-auto">
+			<DialogContent className="max-h-[92vh] w-[min(96vw,1180px)] overflow-y-auto text-sm sm:max-w-[min(96vw,1180px)]">
 				<DialogHeader>
 					<DialogTitle>{context.reply ? "Reply" : "New email"}</DialogTitle>
 					<DialogDescription>
@@ -236,10 +236,10 @@ export function ComposeDialog({
 					<Field>
 						<FieldLabel>Body</FieldLabel>
 						<Textarea
-							rows={22}
+							rows={20}
 							value={body}
 							onChange={(e) => setBody(e.target.value)}
-							className="min-h-[420px] font-sans text-[15px] leading-relaxed"
+							className="min-h-[440px] font-sans text-[15px] leading-relaxed"
 						/>
 					</Field>
 					{signature.data?.logoUrl ? (
