@@ -7,12 +7,26 @@ const Logo = (props: React.SVGProps<SVGSVGElement>) => (
 		height={512}
 		viewBox="0 0 512 512"
 		fill="none"
-		aria-label="Comp AI Logo"
+		aria-label="The Smoke Curtain Guy"
 		{...props}
 	>
+		<rect x="40" y="40" width="432" height="432" rx="88" fill="currentColor" opacity="0.12" />
+		<circle cx="256" cy="256" r="112" fill="#e3232f" />
 		<path
-			d="m384 99.548 -16.066 -12.508L256.021 0 0 199.096v113.782L256.021 512 512 312.879V199.096zm-127.98 -49.419 79.695 61.975 -40.944 31.803 -3.661 2.837 -35.091 -27.287 -102.399 79.638 35.09 27.287 32.218 25.088 35.09 27.288L358.4 199.074l-35.047 -27.288 3.659 -2.837 40.943 -31.803 79.651 61.952 -40.943 31.852 -150.62 117.163 -79.695 -61.974 -32.218 -25.041 -38.752 -30.125 -40.922 -31.849z"
-			fill="currentColor"
+			d="M120 372c40 0 52-38 92-38s60 44 100 44 52-30 84-30"
+			stroke="currentColor"
+			strokeWidth="26"
+			strokeLinecap="round"
+			fill="none"
+			opacity="0.85"
+		/>
+		<path
+			d="M148 150c30-2 46 24 74 22 30-2 44-32 82-30 28 1 42 22 70 22"
+			stroke="currentColor"
+			strokeWidth="22"
+			strokeLinecap="round"
+			fill="none"
+			opacity="0.55"
 		/>
 	</svg>
 );
