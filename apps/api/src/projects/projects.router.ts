@@ -1,9 +1,12 @@
 import { Inject } from "@nestjs/common";
 import { Input, Mutation, Query, Router, UseMiddlewares } from "nestjs-trpc";
-import type { z } from "zod";
+import { z } from "zod";
 import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
 import { restMeta } from "../trpc/openapi";
 import {
+	participantAddInput,
+	participantListOutput,
+	participantRemoveInput,
 	projectArchiveResultOutput,
 	projectBulkInput,
 	projectBulkResultOutput,
@@ -64,6 +67,33 @@ export class ProjectsRouter {
 	})
 	async people(@Input("id") id: string) {
 		return this.projects.people(id);
+	}
+
+	@Query({
+		input: projectIdInput,
+		output: participantListOutput,
+		meta: restMeta("GET", "/projects/{id}/participants", ["Projects"]),
+	})
+	async participants(@Input("id") id: string) {
+		return this.projects.participants(id);
+	}
+
+	@Mutation({
+		input: participantAddInput,
+		output: z.object({ id: z.string(), created: z.boolean() }),
+		meta: restMeta("POST", "/projects/participants", ["Projects"]),
+	})
+	async addParticipant(@Input() input: z.infer<typeof participantAddInput>) {
+		return this.projects.addParticipant(input);
+	}
+
+	@Mutation({
+		input: participantRemoveInput,
+		output: participantRemoveInput,
+		meta: restMeta("POST", "/projects/participants/{id}/remove", ["Projects"]),
+	})
+	async removeParticipant(@Input("id") id: string) {
+		return this.projects.removeParticipant(id);
 	}
 
 	@Mutation({

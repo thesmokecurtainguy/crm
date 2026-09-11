@@ -227,3 +227,44 @@ export const projectPeopleOutput = z.array(
 		),
 	}),
 );
+
+export const participantOutput = z.object({
+	id: z.string(),
+	role: z.string(),
+	note: z.string().nullable(),
+	company: z
+		.object({
+			id: z.string(),
+			name: z.string(),
+			phone: z.string().nullable(),
+			city: z.string().nullable(),
+			stateCode: z.string().nullable(),
+		})
+		.nullable(),
+	contact: z
+		.object({
+			id: z.string(),
+			name: z.string(),
+			title: z.string().nullable(),
+			email: z.string().nullable(),
+			phone: z.string().nullable(),
+			company: z.object({ id: z.string(), name: z.string() }).nullable(),
+		})
+		.nullable(),
+});
+
+export const participantListOutput = z.array(participantOutput);
+
+export const participantAddInput = z
+	.object({
+		projectId: z.string(),
+		companyId: z.string().optional(),
+		contactId: z.string().optional(),
+		role: z.string().trim().min(1).max(80),
+		note: z.string().trim().max(500).nullable().optional(),
+	})
+	.refine((input) => Boolean(input.companyId) !== Boolean(input.contactId), {
+		message: "Add a company or a contact, not both.",
+	});
+
+export const participantRemoveInput = z.object({ id: z.string() });

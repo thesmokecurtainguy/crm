@@ -26,7 +26,7 @@ import { enrichmentQueueInput } from "@crm/validation/enrichment-queue";
 import { fieldListInput, fieldListOutput, fieldByKeyInput, serializedFieldOutput, fieldEntityInput, fieldFiltersOutput, fieldIdInput, fieldCoverageOutput, fieldCreateInput, fieldUpdateArgs, fieldReorderInput, fieldReorderOutput, fieldDeleteOutput, fieldBackfillOutput } from "../fields/fields.contracts";
 import { googleConnectionStatusOutput, setAutoCreateInput, suppressDomainInput, suppressDomainOutput, threadInput, emailThreadOutput, calendarEventInput, calendarEventOutput } from "../google/google.contracts";
 import { purgeSyncedDataOutput, revokeAccessOutput, microsoftConnectionStatusOutput, setOutlookAutoCreateInput } from "../microsoft/microsoft.contracts";
-import { projectListInput, projectListOutput, projectOptionsInput, projectOptionOutput, projectIdInput, projectDetailOutput, projectPeopleOutput, projectCreateInput, projectSummaryOutput, projectUpsertInput, projectUpdateArgs, projectTriageInput, projectArchiveResultOutput, projectBulkTriageInput, projectBulkResultOutput, projectBulkInput } from "../projects/projects.contracts";
+import { projectListInput, projectListOutput, projectOptionsInput, projectOptionOutput, projectIdInput, projectDetailOutput, projectPeopleOutput, participantListOutput, participantAddInput, participantRemoveInput, projectCreateInput, projectSummaryOutput, projectUpsertInput, projectUpdateArgs, projectTriageInput, projectArchiveResultOutput, projectBulkTriageInput, projectBulkResultOutput, projectBulkInput } from "../projects/projects.contracts";
 import { savedViewListInput, savedViewListOutput, savedViewCreateInput, savedViewOutput, savedViewUpdateArgs, savedViewIdInput, savedViewDeleteOutput } from "../saved-views/saved-views.contracts";
 import { agentModelOutput, modelCatalogOutput, setAgentModelInput, researchKeyOutput, setResearchKeyInput, archiveRetentionOutput, setArchiveRetentionDaysInput } from "../settings/settings.contracts";
 import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannelsOutput, slackJoinChannelInput, slackJoinChannelOutput, slackRefreshPeopleOutput, slackCreateChannelInput, slackCreateChannelOutput, slackDisconnectOutput } from "../slack/slack.contracts";
@@ -599,6 +599,18 @@ const appRouter = t.router({
       .input(projectIdInput)
       .output(projectPeopleOutput)
       .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    participants: publicProcedure
+      .input(projectIdInput)
+      .output(participantListOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    addParticipant: publicProcedure
+      .input(participantAddInput)
+      .output(z.object({ id: z.string(), created: z.boolean() }))
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    removeParticipant: publicProcedure
+      .input(participantRemoveInput)
+      .output(participantRemoveInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
     create: publicProcedure
       .input(projectCreateInput)
       .output(projectSummaryOutput)

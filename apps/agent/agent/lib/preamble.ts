@@ -390,7 +390,7 @@ export async function projectPreamble(
 		"",
 		"Start with `read_project` on this project id. It returns the building, the team firms with their people and contact ids, John's dated log, linked quotes, and anything already drafted or scheduled — so you never draft twice or ask for a name you already have.",
 		"",
-		"Outreach on a project goes to the project architect first, about this project. If nobody at the firm is named yet, use `read_company_history` on the architect and, if that is thin, `read_website` on the firm's site to find the People page. Draft with `draft_email` only after loading drafting-for-john. Follow-ups and to-dos go on the CRM calendar with `propose_todo`.",
+		"Outreach on a project goes to the project architect first, about this project. Check `participants` in the project read: people John assigned to this project outrank the firm roster. If nobody is named yet, use `read_company_history` on the architect and, if that is thin, `read_website` on the firm's site to find the People page; when you learn who the project architect is, `add_project_participant` with the role so it sticks. Draft with `draft_email` only after loading drafting-for-john. Follow-ups and to-dos go on the CRM calendar with `propose_todo`.",
 		"",
 		await closing(),
 	]

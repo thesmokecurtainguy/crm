@@ -31,7 +31,7 @@ const COMPANY = {
 
 export default defineTool({
 	description:
-		"Read a building project in full: address, stage, value, floors, units, bid date, scope, the architect, GC and developer with their people and contact ids, John's dated log on it, quotes linked to it, and what the agent has already drafted or scheduled about it. Free — call it first in a project session.",
+		"Read a building project in full: address, stage, value, floors, units, bid date, scope; the team firms (architect, GC, developer) with their full rosters; the people and firms John has assigned to THIS project under `participants` (the project architect, PM, etc. — prefer these over the roster); John's dated log; quotes; and what the agent already drafted or scheduled. Free — call it first in a project session.",
 	inputSchema: z.object({
 		projectId: z.string(),
 	}),
@@ -92,6 +92,26 @@ export default defineTool({
 						createdBy: { select: { name: true } },
 					},
 				},
+				projectParticipants: {
+					orderBy: [{ role: "asc" }],
+					select: {
+						id: true,
+						role: true,
+						note: true,
+						company: { select: { id: true, name: true, phone: true } },
+						contact: {
+							select: {
+								id: true,
+								firstName: true,
+								lastName: true,
+								title: true,
+								email: true,
+								phone: true,
+								companyId: true,
+							},
+						},
+					},
+				},
 				agentWrites: {
 					orderBy: { createdAt: "desc" },
 					take: 20,
@@ -112,10 +132,11 @@ export default defineTool({
 
 		focusOn({ companyId: project.architect?.id ?? null });
 
-		const { value, deals, ...rest } = project;
+		const { value, deals, projectParticipants, ...rest } = project;
 		return {
 			found: true as const,
 			...rest,
+			participants: projectParticipants,
 			value: value === null ? null : value.toNumber(),
 			deals: deals.map((deal) => ({
 				...deal,

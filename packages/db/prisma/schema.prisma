@@ -328,7 +328,7 @@ model Company {
   lastActivityAt DateTime?
   archivedAt     DateTime?
 
-  contacts       Contact[]           @relation("CompanyContacts")
+  contacts       Contact[]            @relation("CompanyContacts")
   conversations  AgentConversation[]
   deals          Deal[]
   activities     Activity[]
@@ -336,11 +336,12 @@ model Company {
   calendarEvents CalendarEvent[]
   fieldValues    FieldValue[]
   agentWrites    AgentWrite[]
-  architectOn    Project[]           @relation("ProjectArchitect")
-  contractorOn   Project[]           @relation("ProjectGeneralContractor")
-  developerOn    Project[]           @relation("ProjectDeveloper")
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  projectRoles   ProjectParticipant[]
+  architectOn    Project[]            @relation("ProjectArchitect")
+  contractorOn   Project[]            @relation("ProjectGeneralContractor")
+  developerOn    Project[]            @relation("ProjectDeveloper")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@unique([domain], map: "company_domain_active_key", where: { archivedAt: null })
   @@index([ownerId])
@@ -402,10 +403,11 @@ model Contact {
   eventAttendance CalendarAttendee[]
   fieldValues     FieldValue[]
   agentWrites     AgentWrite[]
-  visitors        TrackedVisitor[]   @relation("VisitorContact")
-  submissions     FormSubmission[]   @relation("SubmissionContact")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  projectRoles    ProjectParticipant[]
+  visitors        TrackedVisitor[]     @relation("VisitorContact")
+  submissions     FormSubmission[]     @relation("SubmissionContact")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
   @@unique([email], map: "contact_email_active_key", where: { archivedAt: null })
   @@index([companyId])
@@ -1025,12 +1027,13 @@ model Project {
   lastActivityAt DateTime?
   archivedAt     DateTime?
 
-  deals              Deal[]
-  agentWrites        AgentWrite[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  activities         Activity[]
-  agentConversations AgentConversation[]
+  deals               Deal[]
+  agentWrites         AgentWrite[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  activities          Activity[]
+  agentConversations  AgentConversation[]
+  projectParticipants ProjectParticipant[]
 
   @@index([architectId])
   @@index([gcId])
@@ -1107,6 +1110,25 @@ model ConstructConnectDigest {
 
   @@index([userId, receivedAt])
   @@map("constructConnectDigest")
+}
+
+model ProjectParticipant {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  role      String
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, companyId, role])
+  @@unique([projectId, contactId])
+  @@index([companyId])
+  @@index([contactId])
+  @@map("projectParticipant")
 }
 
 enum ProjectStage {

@@ -386,6 +386,127 @@ export class ProjectsService {
 		return out;
 	}
 
+	async participants(projectId: string) {
+		const rows = await this.db.projectParticipant.findMany({
+			where: { projectId },
+			orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+			select: {
+				id: true,
+				role: true,
+				note: true,
+				company: {
+					select: {
+						id: true,
+						name: true,
+						phone: true,
+						city: true,
+						stateCode: true,
+					},
+				},
+				contact: {
+					select: {
+						id: true,
+						firstName: true,
+						lastName: true,
+						title: true,
+						email: true,
+						phone: true,
+						company: { select: { id: true, name: true } },
+					},
+				},
+			},
+		});
+		return rows.map((row) => ({
+			id: row.id,
+			role: row.role,
+			note: row.note,
+			company: row.company,
+			contact: row.contact
+				? {
+						id: row.contact.id,
+						name: [row.contact.firstName, row.contact.lastName]
+							.filter(Boolean)
+							.join(" "),
+						title: row.contact.title,
+						email: row.contact.email,
+						phone: row.contact.phone,
+						company: row.contact.company,
+					}
+				: null,
+		}));
+	}
+
+	async addParticipant(input: {
+		projectId: string;
+		companyId?: string;
+		contactId?: string;
+		role: string;
+		note?: string | null;
+	}) {
+		const project = await this.db.project.findUnique({
+			where: { id: input.projectId },
+			select: { id: true },
+		});
+		if (!project)
+			throw new NotFoundException(`No project with id ${input.projectId}.`);
+
+		if (input.contactId) {
+			const existing = await this.db.projectParticipant.findFirst({
+				where: { projectId: input.projectId, contactId: input.contactId },
+				select: { id: true },
+			});
+			if (existing) {
+				await this.db.projectParticipant.update({
+					where: { id: existing.id },
+					data: { role: input.role, note: input.note ?? undefined },
+				});
+				return { id: existing.id, created: false };
+			}
+		}
+		try {
+			const row = await this.db.projectParticipant.create({
+				data: {
+					projectId: input.projectId,
+					companyId: input.companyId ?? null,
+					contactId: input.contactId ?? null,
+					role: input.role,
+					note: input.note ?? null,
+				},
+				select: { id: true },
+			});
+			await this.db.project.update({
+				where: { id: input.projectId },
+				data: { lastActivityAt: new Date() },
+			});
+			return { id: row.id, created: true };
+		} catch (error) {
+			if (
+				error instanceof PrismaNamespace.PrismaClientKnownRequestError &&
+				error.code === "P2002"
+			) {
+				throw new ConflictException(
+					"That company already has that role on this project.",
+				);
+			}
+			throw error;
+		}
+	}
+
+	async removeParticipant(id: string) {
+		await this.db.projectParticipant
+			.delete({ where: { id } })
+			.catch((error) => {
+				if (
+					error instanceof PrismaNamespace.PrismaClientKnownRequestError &&
+					error.code === "P2025"
+				) {
+					throw new NotFoundException("No such participant.");
+				}
+				throw error;
+			});
+		return { id };
+	}
+
 	async archive(id: string): Promise<{ id: string; name: string }> {
 		try {
 			const project = await this.db.project.update({

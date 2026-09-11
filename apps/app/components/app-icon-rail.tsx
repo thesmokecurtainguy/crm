@@ -24,8 +24,8 @@ import {
 } from "@crm/ui/components/tooltip";
 import { cn } from "@crm/ui/lib/utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { AgentBuilderSidebar } from "@/components/agent-builder/agent-builder-sidebar";
 import { usePrefetchSection } from "@/components/crm/section-prefetch";
 import { useMobileNav } from "@/components/mobile-nav";
@@ -214,21 +214,58 @@ export function AppIconRailFallback() {
 	);
 }
 
+const LAST_VIEW_KEY = "crm.rail.lastView";
+
+function readLastViews(): Record<string, string> {
+	if (typeof window === "undefined") return {};
+	try {
+		return JSON.parse(window.sessionStorage.getItem(LAST_VIEW_KEY) ?? "{}");
+	} catch {
+		return {};
+	}
+}
+
+function rememberView(section: string, url: string) {
+	try {
+		const views = readLastViews();
+		views[section] = url;
+		window.sessionStorage.setItem(LAST_VIEW_KEY, JSON.stringify(views));
+	} catch {}
+}
+
 export function AppIconRail() {
 	const pathname = usePathname();
+	const searchParams = useSearchParams();
 	const workspaceUrl = useWorkspaceUrl();
 	const { open, setOpen } = useMobileNav();
 	const prefetchSection = usePrefetchSection();
+	const [lastViews, setLastViews] = useState<Record<string, string>>({});
+
+	useEffect(() => {
+		const current = ITEMS.find(
+			(item) =>
+				item.match === "prefix" &&
+				item.href !== "/" &&
+				pathname.startsWith(workspaceUrl(item.href)),
+		);
+		if (!current) return;
+		const query = searchParams.toString();
+		const url = query ? `${pathname}?${query}` : pathname;
+		rememberView(current.href, url);
+		setLastViews(readLastViews());
+	}, [pathname, searchParams, workspaceUrl]);
 
 	const items = useMemo(
 		() =>
 			ITEMS.map((item) => ({
 				...item,
 				section: item.href,
-				href: workspaceUrl(item.href),
+				href:
+					(item.href !== "/" && lastViews[item.href]) ||
+					workspaceUrl(item.href),
 				related: item.related?.map((path) => workspaceUrl(path)),
 			})),
-		[workspaceUrl],
+		[workspaceUrl, lastViews],
 	);
 	const inChat = items.some(
 		(item) => item.title === "Chat" && isActive(item, pathname),
