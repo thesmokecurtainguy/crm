@@ -180,6 +180,7 @@ writeFileSync(
 		crons: [
 			{ path: "/internal/sync/google", schedule: "*/5 * * * *" },
 			{ path: "/internal/sync/constructconnect", schedule: "0 11,15,23 * * *" },
+			{ path: "/internal/brief", schedule: "0 12 * * 1-5" },
 		],
 	}),
 );

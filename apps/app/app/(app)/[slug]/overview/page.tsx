@@ -10,14 +10,21 @@ import {
 import { requireSession } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
-import { HomeTabs } from "./home-tabs";
+import { DashboardSummary } from "../dashboard-summary";
+import { HomeTabs } from "../home-tabs";
 import {
 	OverviewGreeting,
 	OverviewGreetingFallback,
-} from "./overview-greeting";
-import { TodayView } from "./today-view";
+} from "../overview-greeting";
+import {
+	OverviewScopeToggle,
+	OverviewScopeToggleFallback,
+} from "../overview-scope";
+import { loadOverviewSearchParams } from "../overview-search-params";
 
-export default function TodayPage() {
+export default function OverviewPage({
+	searchParams,
+}: PageProps<"/[slug]/overview">) {
 	return (
 		<PageShell>
 			<PageShellHeader>
@@ -27,26 +34,38 @@ export default function TodayPage() {
 					</Suspense>
 				</PageShellHeading>
 				<PageShellActions>
-					<HomeTabs active="today" />
+					<HomeTabs active="overview" />
+					<Suspense fallback={<OverviewScopeToggleFallback />}>
+						<OverviewScopeToggle />
+					</Suspense>
 				</PageShellActions>
 			</PageShellHeader>
 
 			<PageShellContent>
 				<Suspense fallback={<PageShellLoading />}>
-					<Today />
+					<Summary searchParams={searchParams} />
 				</Suspense>
 			</PageShellContent>
 		</PageShell>
 	);
 }
 
-async function Today() {
-	await requireSession();
+async function Summary({
+	searchParams,
+}: Pick<PageProps<"/[slug]/overview">, "searchParams">) {
+	const [, { scope }] = await Promise.all([
+		requireSession(),
+		loadOverviewSearchParams(searchParams),
+	]);
+
 	const queryClient = getServerQueryClient();
-	await queryClient.prefetchQuery(getServerTrpc().brief.today.queryOptions());
+	await queryClient.prefetchQuery(
+		getServerTrpc().dashboard.summary.queryOptions({ scope }),
+	);
+
 	return (
 		<HydrateClient>
-			<TodayView />
+			<DashboardSummary />
 		</HydrateClient>
 	);
 }

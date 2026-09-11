@@ -8,6 +8,7 @@ import { ApiKeysModule } from "./api-keys/api-keys.module";
 import { ArchiveModule } from "./archive/archive.module";
 import { AuthModule } from "./auth/auth.module";
 import { BackfillModule } from "./backfill/backfill.module";
+import { BriefModule } from "./brief/brief.module";
 import { AppCacheModule } from "./cache/cache.module";
 import { CompaniesModule } from "./companies/companies.module";
 import { validateEnv } from "./config/env.validation";
@@ -66,6 +67,7 @@ import { WritesModule } from "./writes/writes.module";
 		ProjectsModule,
 		ConstructConnectModule,
 		WritesModule,
+		BriefModule,
 		FieldsModule,
 		ActivitiesModule,
 		AgentModule,
