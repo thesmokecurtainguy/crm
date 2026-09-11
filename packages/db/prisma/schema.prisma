@@ -1131,6 +1131,21 @@ model ProjectParticipant {
   @@map("projectParticipant")
 }
 
+model EmailTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  subject     String
+  body        String
+  createdById String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([archivedAt, name])
+  @@map("emailTemplate")
+}
+
 enum ProjectStage {
   UNKNOWN
   PRE_DESIGN

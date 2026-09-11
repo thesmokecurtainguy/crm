@@ -36,6 +36,7 @@ import { SlackModule } from "./slack/slack.module";
 import { SsoModule } from "./sso/sso.module";
 import { SyncModule } from "./sync/sync.module";
 import { TelemetryModule } from "./telemetry/telemetry.module";
+import { TemplatesModule } from "./templates/templates.module";
 import { TrackingModule } from "./tracking/tracking.module";
 import { TrpcModule } from "./trpc/trpc.module";
 import { UsersModule } from "./users/users.module";
@@ -68,6 +69,7 @@ import { WritesModule } from "./writes/writes.module";
 		ConstructConnectModule,
 		WritesModule,
 		BriefModule,
+		TemplatesModule,
 		FieldsModule,
 		ActivitiesModule,
 		AgentModule,

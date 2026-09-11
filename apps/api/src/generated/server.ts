@@ -32,6 +32,7 @@ import { savedViewListInput, savedViewListOutput, savedViewCreateInput, savedVie
 import { agentModelOutput, modelCatalogOutput, setAgentModelInput, researchKeyOutput, setResearchKeyInput, archiveRetentionOutput, setArchiveRetentionDaysInput } from "../settings/settings.contracts";
 import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannelsOutput, slackJoinChannelInput, slackJoinChannelOutput, slackRefreshPeopleOutput, slackCreateChannelInput, slackCreateChannelOutput, slackDisconnectOutput } from "../slack/slack.contracts";
 import { ssoSignInOptionsOutput, ssoSettingsOutput, ssoProviderListInput, ssoProviderListOutput, registerSsoProviderInput, ssoProviderOutput, deleteSsoProviderInput, deleteSsoProviderOutput } from "../sso/sso.contracts";
+import { templateListInput, templateListOutput, templateCreateInput, templateOutput, templateUpdateInput, templateIdInput, templateRenderInput, templateRenderOutput, templateValuesInput, templateValuesOutput, sendEmailInput, sendEmailOutput } from "../templates/templates.contracts";
 import { trackingSettingsOutput, trackingFlagInput, cookieLifetimeInput, addDomainInput, trackedDomainOutput, removeDomainInput, rotateSiteIdOutput, verifyInput, verifyOutput, sourcesOutput, companyActivityInput, websiteActivityOutput, contactActivityInput } from "../tracking/tracking.contracts";
 import { workspaceOutput, memberListInput, memberListOutput, updateWorkspaceInput, setMemberRoleInput, workspaceMemberOutput } from "../workspace/workspace.contracts";
 import { writeListInput, writeListOutput, draftEmailInput, writeResultOutput, createEventInput, moveEventInput, proposeTodoInput, writeIdInput } from "../writes/writes.contracts";
@@ -764,6 +765,36 @@ const appRouter = t.router({
     remove: publicProcedure
       .input(deleteSsoProviderInput)
       .output(deleteSsoProviderOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
+    }),
+  templates: t.router({
+    list: publicProcedure
+      .input(templateListInput)
+      .output(templateListOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    create: publicProcedure
+      .input(templateCreateInput)
+      .output(templateOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    update: publicProcedure
+      .input(templateUpdateInput)
+      .output(templateOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    archive: publicProcedure
+      .input(templateIdInput)
+      .output(templateOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    render: publicProcedure
+      .input(templateRenderInput)
+      .output(templateRenderOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    values: publicProcedure
+      .input(templateValuesInput)
+      .output(templateValuesOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    sendEmail: publicProcedure
+      .input(sendEmailInput)
+      .output(sendEmailOutput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
     }),
   tracking: t.router({

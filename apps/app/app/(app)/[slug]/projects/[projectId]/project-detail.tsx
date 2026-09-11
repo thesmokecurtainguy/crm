@@ -37,6 +37,10 @@ import Link from "next/link";
 import { type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CompanyPicker } from "@/components/crm/company-picker";
+import {
+	type ComposeContext,
+	ComposeDialog,
+} from "@/components/crm/compose-dialog";
 import { ContactSearch } from "@/components/crm/contact-search";
 import { Timeline } from "@/components/crm/timeline/timeline";
 import { LocalDay } from "@/components/local-date-time";
@@ -251,6 +255,7 @@ export function ProjectDetail({ id }: { id: string }) {
 			return next;
 		});
 	const [rosterOpen, setRosterOpen] = useState<Set<string>>(new Set());
+	const [compose, setCompose] = useState<ComposeContext | null>(null);
 	const [personRole, setPersonRole] = useState("Project architect");
 	const [firmRole, setFirmRole] = useState("Architect");
 	const [firmId, setFirmId] = useState("");
@@ -1310,6 +1315,13 @@ export function ProjectDetail({ id }: { id: string }) {
 					</Section>
 				</div>
 			</div>
+			<ComposeDialog
+				open={compose !== null}
+				onOpenChange={(open) => {
+					if (!open) setCompose(null);
+				}}
+				context={compose ?? {}}
+			/>
 		</div>
 	);
 }

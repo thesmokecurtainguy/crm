@@ -101,6 +101,15 @@ Office manager: two or three sentences. Who John is, that he does AIA lunch
 presentations, and who at the office handles scheduling those. Warm, brief,
 nothing to decide.
 
+## Templates first
+
+Call `list_templates` before writing. If one matches the situation (its
+"when to use it" line tells you), use its subject and body and fill the
+placeholders from the record: {{firstName}}, {{firm}}, {{project}},
+{{city}}, {{bidDate}} and so on. Adjust one or two words so it reads true for
+this person, no more. A template is John's own wording; the rules below are
+already baked into it. Only write from scratch when no template fits.
+
 ## Before you call draft_email
 
 Read the draft once as the recipient. Would they want to reply? Does it sound

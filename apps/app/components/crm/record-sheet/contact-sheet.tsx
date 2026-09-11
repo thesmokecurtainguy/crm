@@ -22,9 +22,11 @@ import { SimpleTable, SimpleTableRow } from "@crm/ui/components/simple-table";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { TableCell } from "@crm/ui/components/table";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AgentPanel } from "@/components/crm/agent-panel";
 import { InlineCompanyField } from "@/components/crm/company-picker";
+import { ComposeDialog } from "@/components/crm/compose-dialog";
 import { contactName } from "@/components/crm/contact-name";
 import { ContactEnrichmentAction } from "@/components/crm/enrichment-actions";
 import { EnrichmentIndicator } from "@/components/crm/enrichment-status";
@@ -102,6 +104,7 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 		},
 	});
 	const contact = query.data;
+	const [composing, setComposing] = useState(false);
 
 	const setPrimary = useMutation(
 		trpc.companies.setPrimaryContact.mutationOptions({
@@ -146,123 +149,138 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 		: [];
 
 	return (
-		<RecordSheetFrame
-			loading={query.isPending}
-			error={query.error?.message ?? null}
-			title={contact ? contactName(contact) : "Contact"}
-			description={
-				contact ? (
-					<MetaLine parts={[contact.title, contact.company?.name]} />
-				) : undefined
-			}
-			note={
-				contact ? (
-					<>
-						{contact.isPrimaryContact ? (
-							<StatusIndicator
-								tone="success"
-								label={`Primary contact at ${contact.company?.name ?? "this company"}`}
-							/>
-						) : null}
-						{contact.enrichmentStatus !== "COMPLETE" ? (
-							<EnrichmentIndicator
-								status={contact.enrichmentStatus}
-								queued={contact.queued}
-								title={contact.enrichmentError}
-							/>
-						) : null}
-					</>
-				) : null
-			}
-			media={
-				<PersonAvatar
-					src={contact?.imageUrl}
-					name={contact ? contactName(contact) : "?"}
-					email={contact?.email}
-					size="lg"
-				/>
-			}
-			actions={
-				contact ? (
-					<>
-						<ContactEnrichmentAction contactId={contact.id} />
-						{contact.email ? (
-							<Button asChild variant="outline" size="sm">
-								<a href={`mailto:${contact.email}`}>
+		<>
+			<RecordSheetFrame
+				loading={query.isPending}
+				error={query.error?.message ?? null}
+				title={contact ? contactName(contact) : "Contact"}
+				description={
+					contact ? (
+						<MetaLine parts={[contact.title, contact.company?.name]} />
+					) : undefined
+				}
+				note={
+					contact ? (
+						<>
+							{contact.isPrimaryContact ? (
+								<StatusIndicator
+									tone="success"
+									label={`Primary contact at ${contact.company?.name ?? "this company"}`}
+								/>
+							) : null}
+							{contact.enrichmentStatus !== "COMPLETE" ? (
+								<EnrichmentIndicator
+									status={contact.enrichmentStatus}
+									queued={contact.queued}
+									title={contact.enrichmentError}
+								/>
+							) : null}
+						</>
+					) : null
+				}
+				media={
+					<PersonAvatar
+						src={contact?.imageUrl}
+						name={contact ? contactName(contact) : "?"}
+						email={contact?.email}
+						size="lg"
+					/>
+				}
+				actions={
+					contact ? (
+						<>
+							<ContactEnrichmentAction contactId={contact.id} />
+							{contact.email ? (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setComposing(true)}
+								>
 									<Icon icon={Email} data-icon="inline-start" />
 									<span className="hidden sm:inline">Email</span>
-								</a>
-							</Button>
-						) : null}
-						{contact.company && !contact.isPrimaryContact ? (
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={setPrimary.isPending}
-								onClick={() =>
-									setPrimary.mutate({
-										companyId: contact.company?.id ?? "",
-										contactId: contact.id,
-									})
-								}
-							>
-								<Icon icon={Star} data-icon="inline-start" />
-								<span className="hidden sm:inline">Make primary</span>
-							</Button>
-						) : null}
-						<RecordActions
-							record={{ kind: "contact", id: contact.id }}
-							name={contactName(contact)}
-							consequence={`Their notes, agent conversations and everything the agent found go too; emails and meetings stay filed against the company.${contact.email ? ` The sync will not bring ${contact.email} back — only adding them yourself will.` : ""}`}
-							archivedAt={contact.archivedAt}
-						/>
-					</>
-				) : null
-			}
-			stats={
-				contact ? (
-					<DetailSheetStats>
-						<DetailSheetStat label="Company">
-							{contact.company ? (
-								<CompanyStat company={contact.company} />
-							) : (
-								<EmptyCellValue />
-							)}
-						</DetailSheetStat>
-						<DetailSheetStat label="Email">
-							{contact.email ? (
-								<a
-									href={`mailto:${contact.email}`}
-									className="underline-offset-2 hover:underline"
+								</Button>
+							) : null}
+							{contact.company && !contact.isPrimaryContact ? (
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={setPrimary.isPending}
+									onClick={() =>
+										setPrimary.mutate({
+											companyId: contact.company?.id ?? "",
+											contactId: contact.id,
+										})
+									}
 								>
-									{contact.email}
-								</a>
-							) : (
-								<EmptyCellValue />
-							)}
-						</DetailSheetStat>
-						<DetailSheetStat label="Phone">
-							{contact.phone ? (
-								<a
-									href={`tel:${contact.phone}`}
-									className="underline-offset-2 hover:underline"
-								>
-									{contact.phone}
-								</a>
-							) : (
-								<EmptyCellValue />
-							)}
-						</DetailSheetStat>
-						<DetailSheetStat label="Owner">
-							<OwnerCell owner={contact.owner} />
-						</DetailSheetStat>
-					</DetailSheetStats>
-				) : null
-			}
-			tabs={tabs}
-			tab={tab}
-			onTabChange={setTab}
-		/>
+									<Icon icon={Star} data-icon="inline-start" />
+									<span className="hidden sm:inline">Make primary</span>
+								</Button>
+							) : null}
+							<RecordActions
+								record={{ kind: "contact", id: contact.id }}
+								name={contactName(contact)}
+								consequence={`Their notes, agent conversations and everything the agent found go too; emails and meetings stay filed against the company.${contact.email ? ` The sync will not bring ${contact.email} back — only adding them yourself will.` : ""}`}
+								archivedAt={contact.archivedAt}
+							/>
+						</>
+					) : null
+				}
+				stats={
+					contact ? (
+						<DetailSheetStats>
+							<DetailSheetStat label="Company">
+								{contact.company ? (
+									<CompanyStat company={contact.company} />
+								) : (
+									<EmptyCellValue />
+								)}
+							</DetailSheetStat>
+							<DetailSheetStat label="Email">
+								{contact.email ? (
+									<a
+										href={`mailto:${contact.email}`}
+										className="underline-offset-2 hover:underline"
+									>
+										{contact.email}
+									</a>
+								) : (
+									<EmptyCellValue />
+								)}
+							</DetailSheetStat>
+							<DetailSheetStat label="Phone">
+								{contact.phone ? (
+									<a
+										href={`tel:${contact.phone}`}
+										className="underline-offset-2 hover:underline"
+									>
+										{contact.phone}
+									</a>
+								) : (
+									<EmptyCellValue />
+								)}
+							</DetailSheetStat>
+							<DetailSheetStat label="Owner">
+								<OwnerCell owner={contact.owner} />
+							</DetailSheetStat>
+						</DetailSheetStats>
+					) : null
+				}
+				tabs={tabs}
+				tab={tab}
+				onTabChange={setTab}
+			/>
+			{contact ? (
+				<ComposeDialog
+					open={composing}
+					onOpenChange={setComposing}
+					context={{
+						to: contact.email,
+						contactId: contact.id,
+						companyId: contact.company?.id ?? null,
+					}}
+				/>
+			) : null}
+		</>
 	);
 }
 
