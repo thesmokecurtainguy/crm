@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
 	PageShell,
 	PageShellContent,
 	PageShellDescription,
 	PageShellHeader,
 	PageShellHeading,
+	PageShellLoading,
 	PageShellTitle,
 } from "@/components/page-shell";
 import { requireSession } from "@/lib/session";
@@ -14,9 +16,7 @@ export const metadata: Metadata = {
 	title: "Templates",
 };
 
-export default async function TemplatesSettingsPage() {
-	await requireSession();
-
+export default function TemplatesSettingsPage() {
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
@@ -31,8 +31,16 @@ export default async function TemplatesSettingsPage() {
 			</PageShellHeader>
 
 			<PageShellContent className="min-h-0">
-				<TemplatesEditor />
+				<Suspense fallback={<PageShellLoading />}>
+					<Templates />
+				</Suspense>
 			</PageShellContent>
 		</PageShell>
 	);
+}
+
+async function Templates() {
+	await requireSession();
+
+	return <TemplatesEditor />;
 }
