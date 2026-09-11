@@ -1,9 +1,19 @@
 import { Inject } from "@nestjs/common";
-import { Input, Mutation, Query, Router, UseMiddlewares } from "nestjs-trpc";
+import {
+	Ctx,
+	Input,
+	Mutation,
+	Query,
+	Router,
+	UseMiddlewares,
+} from "nestjs-trpc";
 import { z } from "zod";
+import { MergeService } from "../crm/merge.service";
+import type { AuthedTrpcContext } from "../trpc/context.types";
 import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
 import { restMeta } from "../trpc/openapi";
 import {
+	duplicatePairOutput,
 	participantAddInput,
 	participantListOutput,
 	participantRemoveInput,
@@ -36,6 +46,7 @@ import { ProjectsService } from "./projects.service";
 export class ProjectsRouter {
 	constructor(
 		@Inject(ProjectsService) private readonly projects: ProjectsService,
+		@Inject(MergeService) private readonly mergeService: MergeService,
 	) {}
 
 	@Query({
@@ -72,6 +83,14 @@ export class ProjectsRouter {
 	})
 	async people(@Input("id") id: string) {
 		return this.projects.people(id);
+	}
+
+	@Query({
+		output: duplicatePairOutput,
+		meta: restMeta("GET", "/projects/duplicates", ["Projects"]),
+	})
+	async duplicates() {
+		return this.projects.duplicates();
 	}
 
 	@Query({
@@ -219,5 +238,27 @@ export class ProjectsRouter {
 	})
 	async bulkArchive(@Input("ids") ids: string[]) {
 		return this.projects.bulkArchive(ids);
+	}
+
+	@Mutation({
+		input: z.object({ keepId: z.string(), mergeId: z.string() }),
+		output: z.object({
+			kind: z.string(),
+			keepId: z.string(),
+			mergedId: z.string(),
+			moved: z.record(z.string(), z.number()),
+		}),
+		meta: restMeta("POST", "/projects/merge", ["Projects"]),
+	})
+	async merge(
+		@Input() input: { keepId: string; mergeId: string },
+		@Ctx() ctx: AuthedTrpcContext,
+	) {
+		return this.mergeService.merge(
+			"project",
+			input.keepId,
+			input.mergeId,
+			ctx.user.id,
+		);
 	}
 }

@@ -7,7 +7,8 @@ import {
 	Router,
 	UseMiddlewares,
 } from "nestjs-trpc";
-import type { z } from "zod";
+import { z } from "zod";
+import { MergeService } from "../crm/merge.service";
 import type { AuthedTrpcContext } from "../trpc/context.types";
 import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
 import { restMeta } from "../trpc/openapi";
@@ -41,6 +42,7 @@ export class CompaniesRouter {
 	constructor(
 		@Inject(CompaniesService) private readonly companies: CompaniesService,
 		@Inject(EmailPatternService) private readonly emails: EmailPatternService,
+		@Inject(MergeService) private readonly mergeService: MergeService,
 	) {}
 
 	@Query({
@@ -201,5 +203,27 @@ export class CompaniesRouter {
 		@Input() input: z.infer<typeof setPrimaryContactInput>,
 	) {
 		return this.companies.setPrimaryContact(input.companyId, input.contactId);
+	}
+
+	@Mutation({
+		input: z.object({ keepId: z.string(), mergeId: z.string() }),
+		output: z.object({
+			kind: z.string(),
+			keepId: z.string(),
+			mergedId: z.string(),
+			moved: z.record(z.string(), z.number()),
+		}),
+		meta: restMeta("POST", "/companies/merge", ["Companies"]),
+	})
+	async merge(
+		@Input() input: { keepId: string; mergeId: string },
+		@Ctx() ctx: AuthedTrpcContext,
+	) {
+		return this.mergeService.merge(
+			"company",
+			input.keepId,
+			input.mergeId,
+			ctx.user.id,
+		);
 	}
 }

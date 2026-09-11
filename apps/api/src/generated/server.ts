@@ -28,7 +28,7 @@ import { enrichmentQueueInput } from "@crm/validation/enrichment-queue";
 import { fieldListInput, fieldListOutput, fieldByKeyInput, serializedFieldOutput, fieldEntityInput, fieldFiltersOutput, fieldIdInput, fieldCoverageOutput, fieldCreateInput, fieldUpdateArgs, fieldReorderInput, fieldReorderOutput, fieldDeleteOutput, fieldBackfillOutput } from "../fields/fields.contracts";
 import { googleConnectionStatusOutput, setAutoCreateInput, suppressDomainInput, suppressDomainOutput, threadInput, emailThreadOutput, calendarEventInput, calendarEventOutput } from "../google/google.contracts";
 import { purgeSyncedDataOutput, revokeAccessOutput, microsoftConnectionStatusOutput, setOutlookAutoCreateInput } from "../microsoft/microsoft.contracts";
-import { projectListInput, projectListOutput, projectOptionsInput, projectOptionOutput, projectIdInput, projectDetailOutput, projectPeopleOutput, projectsForCompanyInput, projectLinkOutput, projectsForContactInput, participantListOutput, participantAddInput, participantRemoveInput, projectCreateInput, projectSummaryOutput, projectUpsertInput, projectUpdateArgs, projectTriageInput, projectArchiveResultOutput, projectBulkTriageInput, projectBulkResultOutput, projectBulkOwnerInput, projectBulkParticipantInput, projectBulkInput } from "../projects/projects.contracts";
+import { projectListInput, projectListOutput, projectOptionsInput, projectOptionOutput, projectIdInput, projectDetailOutput, projectPeopleOutput, duplicatePairOutput, projectsForCompanyInput, projectLinkOutput, projectsForContactInput, participantListOutput, participantAddInput, participantRemoveInput, projectCreateInput, projectSummaryOutput, projectUpsertInput, projectUpdateArgs, projectTriageInput, projectArchiveResultOutput, projectBulkTriageInput, projectBulkResultOutput, projectBulkOwnerInput, projectBulkParticipantInput, projectBulkInput } from "../projects/projects.contracts";
 import { savedViewListInput, savedViewListOutput, savedViewCreateInput, savedViewOutput, savedViewUpdateArgs, savedViewIdInput, savedViewDeleteOutput } from "../saved-views/saved-views.contracts";
 import { agentModelOutput, modelCatalogOutput, setAgentModelInput, researchKeyOutput, setResearchKeyInput, archiveRetentionOutput, setArchiveRetentionDaysInput } from "../settings/settings.contracts";
 import { skillListOutput, skillUpdateInput, skillOutput, skillSlugInput } from "../skills/skills.contracts";
@@ -228,6 +228,15 @@ const appRouter = t.router({
     setPrimaryContact: publicProcedure
       .input(setPrimaryContactInput)
       .output(companySetPrimaryContactOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    merge: publicProcedure
+      .input(z.object({ keepId: z.string(), mergeId: z.string() }))
+      .output(z.object({
+			kind: z.string(),
+			keepId: z.string(),
+			mergedId: z.string(),
+			moved: z.record(z.string(), z.number()),
+		}))
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
     }),
   contacts: t.router({
@@ -290,6 +299,15 @@ const appRouter = t.router({
     decideFact: publicProcedure
       .input(factDecisionInput)
       .output(decideFactOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    merge: publicProcedure
+      .input(z.object({ keepId: z.string(), mergeId: z.string() }))
+      .output(z.object({
+			kind: z.string(),
+			keepId: z.string(),
+			mergedId: z.string(),
+			moved: z.record(z.string(), z.number()),
+		}))
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
     }),
   conversations: t.router({
@@ -617,6 +635,9 @@ const appRouter = t.router({
       .input(projectIdInput)
       .output(projectPeopleOutput)
       .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    duplicates: publicProcedure
+      .output(duplicatePairOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
     forCompany: publicProcedure
       .input(projectsForCompanyInput)
       .output(projectLinkOutput)
@@ -676,6 +697,15 @@ const appRouter = t.router({
     bulkArchive: publicProcedure
       .input(projectBulkInput)
       .output(projectBulkResultOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    merge: publicProcedure
+      .input(z.object({ keepId: z.string(), mergeId: z.string() }))
+      .output(z.object({
+			kind: z.string(),
+			keepId: z.string(),
+			mergedId: z.string(),
+			moved: z.record(z.string(), z.number()),
+		}))
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
     }),
   savedViews: t.router({

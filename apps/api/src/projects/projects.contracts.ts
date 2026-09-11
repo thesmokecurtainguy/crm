@@ -306,3 +306,35 @@ export const projectBulkParticipantInput = bulkIdsInput.extend({
 	companyId: z.string().optional(),
 	role: z.string().trim().min(1).max(80),
 });
+
+export const duplicatePairOutput = z.array(
+	z.object({
+		reason: z.string(),
+		a: z.object({
+			id: z.string(),
+			name: z.string(),
+			externalId: z.string().nullable(),
+			city: z.string().nullable(),
+			stateCode: z.string().nullable(),
+			address: z.string().nullable(),
+			stage: projectStage,
+			leadStatus: leadStatus,
+			value: z.number().nullable(),
+			architect: z.string().nullable(),
+			lastUpdateAt: z.string().nullable(),
+		}),
+		b: z.object({
+			id: z.string(),
+			name: z.string(),
+			externalId: z.string().nullable(),
+			city: z.string().nullable(),
+			stateCode: z.string().nullable(),
+			address: z.string().nullable(),
+			stage: projectStage,
+			leadStatus: leadStatus,
+			value: z.number().nullable(),
+			architect: z.string().nullable(),
+			lastUpdateAt: z.string().nullable(),
+		}),
+	}),
+);

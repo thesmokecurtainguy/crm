@@ -427,6 +427,93 @@ export class ProjectsService {
 		return out;
 	}
 
+	async duplicates() {
+		const rows = await this.db.project.findMany({
+			where: { archivedAt: null },
+			select: {
+				id: true,
+				name: true,
+				externalId: true,
+				city: true,
+				stateCode: true,
+				address: true,
+				stage: true,
+				leadStatus: true,
+				value: true,
+				lastUpdateAt: true,
+				architect: { select: { name: true } },
+			},
+		});
+		const norm = (v: string | null) =>
+			(v ?? "")
+				.toLowerCase()
+				.replace(/&/g, " and ")
+				.replace(/\b(the|a|an|of|at)\b/g, " ")
+				.replace(/[^a-z0-9]+/g, " ")
+				.trim();
+		const shape = (r: (typeof rows)[number]) => ({
+			id: r.id,
+			name: r.name,
+			externalId: r.externalId,
+			city: r.city,
+			stateCode: r.stateCode,
+			address: r.address,
+			stage: r.stage,
+			leadStatus: r.leadStatus,
+			value: r.value === null ? null : r.value.toNumber(),
+			architect: r.architect?.name ?? null,
+			lastUpdateAt: iso(r.lastUpdateAt),
+		});
+		const pairs: {
+			reason: string;
+			a: ReturnType<typeof shape>;
+			b: ReturnType<typeof shape>;
+		}[] = [];
+		const seen = new Set<string>();
+		const push = (
+			a: (typeof rows)[number],
+			b: (typeof rows)[number],
+			reason: string,
+		) => {
+			const key = [a.id, b.id].sort().join("|");
+			if (seen.has(key)) return;
+			seen.add(key);
+			pairs.push({ reason, a: shape(a), b: shape(b) });
+		};
+		for (let i = 0; i < rows.length; i += 1) {
+			for (let j = i + 1; j < rows.length; j += 1) {
+				const a = rows[i];
+				const b = rows[j];
+				if (!a || !b) continue;
+				const sameState = (a.stateCode ?? "") === (b.stateCode ?? "");
+				if (!sameState) continue;
+				const an = norm(a.name);
+				const bn = norm(b.name);
+				if (an && an === bn) {
+					push(a, b, "Same name and state");
+					continue;
+				}
+				const aa = norm(a.address);
+				const ba = norm(b.address);
+				if (aa && aa === ba && norm(a.city) === norm(b.city)) {
+					push(a, b, "Same address");
+					continue;
+				}
+				const aKeyed = (a.externalId ?? "").startsWith("name:");
+				const bKeyed = (b.externalId ?? "").startsWith("name:");
+				if (
+					aKeyed !== bKeyed &&
+					an &&
+					bn &&
+					(an.includes(bn) || bn.includes(an))
+				) {
+					push(a, b, "Name-keyed record next to a ConstructConnect one");
+				}
+			}
+		}
+		return pairs.slice(0, 100);
+	}
+
 	async forCompany(companyId: string) {
 		const projects = await this.db.project.findMany({
 			where: {

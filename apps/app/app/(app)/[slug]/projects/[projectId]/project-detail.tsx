@@ -6,6 +6,7 @@ import ChevronDown from "@carbon/icons-react/es/ChevronDown";
 import ChevronRight from "@carbon/icons-react/es/ChevronRight";
 import Close from "@carbon/icons-react/es/Close";
 import Launch from "@carbon/icons-react/es/Launch";
+import Merge from "@carbon/icons-react/es/Merge";
 import Undo from "@carbon/icons-react/es/Undo";
 import type { DealStage, LeadStatus, ProjectStage } from "@crm/db/enums";
 import { Button } from "@crm/ui/components/button";
@@ -42,6 +43,7 @@ import {
 	ComposeDialog,
 } from "@/components/crm/compose-dialog";
 import { ContactSearch } from "@/components/crm/contact-search";
+import { MergeDialog } from "@/components/crm/merge-dialog";
 import { Timeline } from "@/components/crm/timeline/timeline";
 import { LocalDay } from "@/components/local-date-time";
 import { dealStageLabel } from "@/lib/deal-stage";
@@ -256,6 +258,7 @@ export function ProjectDetail({ id }: { id: string }) {
 		});
 	const [rosterOpen, setRosterOpen] = useState<Set<string>>(new Set());
 	const [compose, setCompose] = useState<ComposeContext | null>(null);
+	const [merging, setMerging] = useState(false);
 	const [personRole, setPersonRole] = useState("Project architect");
 	const [firmRole, setFirmRole] = useState("Architect");
 	const [firmId, setFirmId] = useState("");
@@ -462,15 +465,25 @@ export function ProjectDetail({ id }: { id: string }) {
 							Restore
 						</Button>
 					) : (
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={archive.isPending}
-							onClick={() => archive.mutate({ id })}
-						>
-							<Archive data-icon="inline-start" />
-							Archive
-						</Button>
+						<>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setMerging(true)}
+							>
+								<Merge data-icon="inline-start" />
+								Merge
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={archive.isPending}
+								onClick={() => archive.mutate({ id })}
+							>
+								<Archive data-icon="inline-start" />
+								Archive
+							</Button>
+						</>
 					)}
 					<Button
 						size="sm"
@@ -1316,6 +1329,13 @@ export function ProjectDetail({ id }: { id: string }) {
 					</Section>
 				</div>
 			</div>
+			<MergeDialog
+				open={merging}
+				onOpenChange={setMerging}
+				kind="project"
+				keepId={id}
+				keepName={current.name}
+			/>
 			<ComposeDialog
 				open={compose !== null}
 				onOpenChange={(open) => {

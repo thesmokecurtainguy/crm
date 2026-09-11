@@ -7,7 +7,8 @@ import {
 	Router,
 	UseMiddlewares,
 } from "nestjs-trpc";
-import type { z } from "zod";
+import { z } from "zod";
+import { MergeService } from "../crm/merge.service";
 import type { AuthedTrpcContext } from "../trpc/context.types";
 import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
 import { restMeta } from "../trpc/openapi";
@@ -35,6 +36,7 @@ import { ContactsService } from "./contacts.service";
 export class ContactsRouter {
 	constructor(
 		@Inject(ContactsService) private readonly contacts: ContactsService,
+		@Inject(MergeService) private readonly mergeService: MergeService,
 	) {}
 
 	@Query({
@@ -175,5 +177,27 @@ export class ContactsRouter {
 		@Input() input: z.infer<typeof factDecisionInput>,
 	) {
 		return this.contacts.decideFact(input, ctx.user.id);
+	}
+
+	@Mutation({
+		input: z.object({ keepId: z.string(), mergeId: z.string() }),
+		output: z.object({
+			kind: z.string(),
+			keepId: z.string(),
+			mergedId: z.string(),
+			moved: z.record(z.string(), z.number()),
+		}),
+		meta: restMeta("POST", "/contacts/merge", ["Contacts"]),
+	})
+	async merge(
+		@Input() input: { keepId: string; mergeId: string },
+		@Ctx() ctx: AuthedTrpcContext,
+	) {
+		return this.mergeService.merge(
+			"contact",
+			input.keepId,
+			input.mergeId,
+			ctx.user.id,
+		);
 	}
 }

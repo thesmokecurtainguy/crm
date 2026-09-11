@@ -1,6 +1,7 @@
 "use client";
 
 import Archive from "@carbon/icons-react/es/Archive";
+import Merge from "@carbon/icons-react/es/Merge";
 import OverflowMenuVertical from "@carbon/icons-react/es/OverflowMenuVertical";
 import TrashCan from "@carbon/icons-react/es/TrashCan";
 import Undo from "@carbon/icons-react/es/Undo";
@@ -25,6 +26,7 @@ import { Icon } from "@crm/ui/components/icon";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { MergeDialog } from "@/components/crm/merge-dialog";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import {
@@ -116,6 +118,7 @@ export function RecordActions({
 	archivedAt: string | null;
 }) {
 	const [confirming, setConfirming] = useState(false);
+	const [merging, setMerging] = useState(false);
 	const archive = useArchiveRecord(record);
 	const restore = useRestoreRecord(record);
 	const purge = usePurgeRecord(record);
@@ -149,15 +152,33 @@ export function RecordActions({
 							</DropdownMenuItem>
 						</>
 					) : (
-						<DropdownMenuItem
-							onSelect={() => archive.mutate({ id: record.id })}
-						>
-							<Icon icon={Archive} />
-							Archive {NOUN[record.kind]}
-						</DropdownMenuItem>
+						<>
+							{record.kind === "contact" || record.kind === "company" ? (
+								<DropdownMenuItem onSelect={() => setMerging(true)}>
+									<Icon icon={Merge} />
+									Merge another {NOUN[record.kind]} into this
+								</DropdownMenuItem>
+							) : null}
+							<DropdownMenuItem
+								onSelect={() => archive.mutate({ id: record.id })}
+							>
+								<Icon icon={Archive} />
+								Archive {NOUN[record.kind]}
+							</DropdownMenuItem>
+						</>
 					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
+
+			{record.kind === "contact" || record.kind === "company" ? (
+				<MergeDialog
+					open={merging}
+					onOpenChange={setMerging}
+					kind={record.kind}
+					keepId={record.id}
+					keepName={name}
+				/>
+			) : null}
 
 			<AlertDialog open={confirming} onOpenChange={setConfirming}>
 				<AlertDialogContent>

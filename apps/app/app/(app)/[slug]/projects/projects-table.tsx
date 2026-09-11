@@ -43,6 +43,7 @@ import {
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
+import { ProjectDuplicates } from "./project-duplicates";
 import { projectsSearchParams } from "./projects-search-params";
 
 type ProjectRow = RouterOutputs["projects"]["list"]["rows"][number];
@@ -354,6 +355,34 @@ export function ProjectsTable() {
 		[input.archived],
 	);
 
+	if (input.status === "duplicates") {
+		return (
+			<DataTable
+				query={query}
+				search={
+					<ListSearch placeholder="Search projects, cities, architects…" />
+				}
+				columns={columns}
+				getRowId={(row) => row.id}
+				rows={[]}
+				total={0}
+				facetCounts={facetCounts}
+				facets={facets}
+				tabs={{
+					id: "status",
+					allLabel: "All projects",
+					options: [
+						{ value: "leads", label: "Leads" },
+						{ value: "pipeline", label: "Pipeline" },
+						{ value: "closed", label: "Closed" },
+						{ value: "duplicates", label: "Duplicates" },
+					],
+				}}
+				empty={<ProjectDuplicates />}
+			/>
+		);
+	}
+
 	return (
 		<DataTable
 			query={query}
@@ -384,6 +413,7 @@ export function ProjectsTable() {
 					{ value: "leads", label: "Leads" },
 					{ value: "pipeline", label: "Pipeline" },
 					{ value: "closed", label: "Closed" },
+					{ value: "duplicates", label: "Duplicates" },
 				],
 			}}
 			selection={{
