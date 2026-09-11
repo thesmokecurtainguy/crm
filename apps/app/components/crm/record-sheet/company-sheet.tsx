@@ -28,6 +28,7 @@ import { AgentPanel } from "@/components/crm/agent-panel";
 import { EnrichmentActions } from "@/components/crm/enrichment-actions";
 import { EnrichmentIndicator } from "@/components/crm/enrichment-status";
 import { FieldsCog, RecordFields } from "@/components/crm/fields/record-fields";
+import { FilesCard } from "@/components/crm/files-card";
 import {
 	InlineField,
 	InlineSelectField,
@@ -212,6 +213,15 @@ export function CompanySheet({ companyId }: { companyId: string }) {
 					label: "Projects",
 					count: projectCount,
 					content: <RecordProjects companyId={company.id} />,
+				},
+				{
+					value: "files",
+					label: "Files",
+					content: (
+						<div className="p-4">
+							<FilesCard companyId={company.id} folderName={company.name} />
+						</div>
+					),
 				},
 				{
 					value: "activity",

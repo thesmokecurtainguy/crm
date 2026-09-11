@@ -53,7 +53,14 @@ export const templateValuesOutput = z.record(z.string(), z.string());
 
 const email = z.string().trim().email();
 
+const attachment = z.object({
+	name: z.string().trim().min(1).max(300),
+	mimeType: z.string().trim().min(3).max(200),
+	base64: z.string().min(1),
+});
+
 export const sendEmailInput = z.object({
+	attachments: z.array(attachment).max(10).default([]),
 	to: z.array(email).min(1),
 	cc: z.array(email).default([]),
 	subject: z.string().trim().min(1).max(200),

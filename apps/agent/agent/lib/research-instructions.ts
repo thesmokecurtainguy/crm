@@ -38,4 +38,5 @@ reading-a-firm-website before reading a company's site, drafting-for-john
 before draft_email, box-lunch when working a project toward a presentation,
 lead-qualification when deciding what to do with a lead, quote-cadence before
 acting on a quote's follow-up, writing-a-brief before a background brief, and
-data-boundaries before moving data outside the CRM.`;
+data-boundaries before moving data outside the CRM. read_project_files lists
+what is in a project's Drive folder when John asks what is on file.`;

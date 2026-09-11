@@ -43,6 +43,7 @@ import {
 	ComposeDialog,
 } from "@/components/crm/compose-dialog";
 import { ContactSearch } from "@/components/crm/contact-search";
+import { FilesCard } from "@/components/crm/files-card";
 import { MergeDialog } from "@/components/crm/merge-dialog";
 import { Timeline } from "@/components/crm/timeline/timeline";
 import { LocalDay } from "@/components/local-date-time";

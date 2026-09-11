@@ -18,6 +18,7 @@ export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 export const CALENDAR_SCOPE =
 	"https://www.googleapis.com/auth/calendar.readonly";
 export const CALENDAR_WRITE_SCOPE = "https://www.googleapis.com/auth/calendar";
+export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 export const OUTLOOK_MAIL_SCOPE = "Mail.Read";
 
 export const SYNC_SCOPES = [
@@ -26,6 +27,7 @@ export const SYNC_SCOPES = [
 	GMAIL_SEND_SCOPE,
 	CALENDAR_SCOPE,
 	CALENDAR_WRITE_SCOPE,
+	DRIVE_SCOPE,
 ] as const;
 export const MICROSOFT_SYNC_SCOPES = [OUTLOOK_MAIL_SCOPE] as const;
 

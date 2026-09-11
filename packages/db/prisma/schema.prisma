@@ -326,6 +326,8 @@ model Company {
   source RecordSource @default(MANUAL)
 
   lastActivityAt DateTime?
+  driveFolderId  String?
+  driveFolderUrl String?
   archivedAt     DateTime?
 
   contacts       Contact[]            @relation("CompanyContacts")
@@ -1025,6 +1027,8 @@ model Project {
   closedAt   DateTime?
 
   lastActivityAt DateTime?
+  driveFolderId  String?
+  driveFolderUrl String?
   archivedAt     DateTime?
 
   deals               Deal[]

@@ -21,6 +21,7 @@ import { CurrencyModule } from "./currency/currency.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { DatabaseModule } from "./database/database.module";
 import { DealsModule } from "./deals/deals.module";
+import { DriveModule } from "./drive/drive.module";
 import { EnrichmentModule } from "./enrichment/enrichment.module";
 import { FieldsModule } from "./fields/fields.module";
 import { GoogleModule } from "./google/google.module";
@@ -72,6 +73,7 @@ import { WritesModule } from "./writes/writes.module";
 		WritesModule,
 		BriefModule,
 		CalendarModule,
+		DriveModule,
 		TemplatesModule,
 		SkillsModule,
 		FieldsModule,

@@ -240,6 +240,7 @@ export class TemplatesService {
 			dealId?: string | null;
 			gmailThreadId?: string | null;
 			logoUrl?: string | null;
+			attachments?: { name: string; mimeType: string; base64: string }[];
 		},
 	) {
 		const account = await this.db.account.findFirst({
@@ -268,6 +269,7 @@ export class TemplatesService {
 			subject: input.subject,
 			body: input.body,
 			logoUrl: input.logoUrl ?? null,
+			attachments: input.attachments ?? [],
 		});
 		const result = await this.api.send<{ id: string; threadId?: string }>(
 			"POST",
@@ -300,7 +302,11 @@ export class TemplatesService {
 				data: {
 					type: "EMAIL",
 					subject: `Sent: ${input.subject}`,
-					body: `To ${input.to.join(", ")}\n\n${input.body}`,
+					body: `To ${input.to.join(", ")}${
+						input.attachments?.length
+							? `\nAttached: ${input.attachments.map((a) => a.name).join(", ")}`
+							: ""
+					}\n\n${input.body}`,
 					occurredAt: now,
 					contactId: input.contactId ?? null,
 					companyId,
@@ -406,15 +412,25 @@ function mime(message: {
 	subject: string;
 	body: string;
 	logoUrl: string | null;
+	attachments: { name: string; mimeType: string; base64: string }[];
 }): string {
 	const boundary = `b_${Date.now().toString(36)}`;
+	const outer = `m_${Date.now().toString(36)}`;
+	const hasFiles = message.attachments.length > 0;
 	const lines = [
 		`From: ${message.from}`,
 		`To: ${message.to.join(", ")}`,
 		...(message.cc.length ? [`Cc: ${message.cc.join(", ")}`] : []),
 		`Subject: ${encodeHeader(message.subject)}`,
 		"MIME-Version: 1.0",
-		`Content-Type: multipart/alternative; boundary="${boundary}"`,
+		...(hasFiles
+			? [
+					`Content-Type: multipart/mixed; boundary="${outer}"`,
+					"",
+					`--${outer}`,
+					`Content-Type: multipart/alternative; boundary="${boundary}"`,
+				]
+			: [`Content-Type: multipart/alternative; boundary="${boundary}"`]),
 		"",
 		`--${boundary}`,
 		'Content-Type: text/plain; charset="UTF-8"',
@@ -429,6 +445,21 @@ function mime(message: {
 		htmlBody(message.body, message.logoUrl),
 		"",
 		`--${boundary}--`,
+		...(hasFiles
+			? [
+					...message.attachments.flatMap((file) => [
+						"",
+						`--${outer}`,
+						`Content-Type: ${file.mimeType}; name="${file.name.replace(/"/g, "")}"`,
+						"Content-Transfer-Encoding: base64",
+						`Content-Disposition: attachment; filename="${file.name.replace(/"/g, "")}"`,
+						"",
+						file.base64.replace(/(.{76})/g, "$1\r\n"),
+					]),
+					"",
+					`--${outer}--`,
+				]
+			: []),
 	];
 	return Buffer.from(lines.join("\r\n"), "utf8")
 		.toString("base64")
