@@ -169,6 +169,11 @@ export function CompanySheet({ companyId }: { companyId: string }) {
 	).length;
 	const closing = nextClose(openDeals);
 
+	const projectsQuery = useQuery(
+		trpc.projects.forCompany.queryOptions({ companyId }),
+	);
+	const projectCount = projectsQuery.data?.length ?? null;
+
 	const tabs: DetailSheetTab[] = company
 		? [
 				{
@@ -205,6 +210,7 @@ export function CompanySheet({ companyId }: { companyId: string }) {
 				{
 					value: "projects",
 					label: "Projects",
+					count: projectCount,
 					content: <RecordProjects companyId={company.id} />,
 				},
 				{

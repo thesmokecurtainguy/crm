@@ -116,6 +116,11 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 		}),
 	);
 
+	const projectsQuery = useQuery(
+		trpc.projects.forContact.queryOptions({ contactId }),
+	);
+	const projectCount = projectsQuery.data?.length ?? null;
+
 	const tabs: DetailSheetTab[] = contact
 		? [
 				{
@@ -132,6 +137,7 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 				{
 					value: "projects",
 					label: "Projects",
+					count: projectCount,
 					content: <RecordProjects contactId={contact.id} />,
 				},
 				{

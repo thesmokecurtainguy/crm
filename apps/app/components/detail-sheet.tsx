@@ -202,7 +202,7 @@ export function DetailSheetTabs({
 				{tabs.map((tab) => (
 					<TabsTrigger key={tab.value} value={tab.value}>
 						{tab.label}
-						{tab.count ? (
+						{typeof tab.count === "number" ? (
 							<span className="text-muted-foreground tabular-nums">
 								{tab.count}
 							</span>
