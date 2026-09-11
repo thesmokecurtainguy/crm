@@ -14,6 +14,8 @@ import { restMeta } from "../trpc/openapi";
 import {
 	sendEmailInput,
 	sendEmailOutput,
+	signatureInput,
+	signatureOutput,
 	templateCreateInput,
 	templateIdInput,
 	templateListInput,
@@ -89,6 +91,23 @@ export class TemplatesRouter {
 	})
 	async values(@Input() input: z.infer<typeof templateValuesInput>) {
 		return this.templates.values(input);
+	}
+
+	@Query({
+		output: signatureOutput,
+		meta: restMeta("GET", "/email/signature", ["Templates"]),
+	})
+	async signature() {
+		return this.templates.signature();
+	}
+
+	@Mutation({
+		input: signatureInput,
+		output: signatureOutput,
+		meta: restMeta("PUT", "/email/signature", ["Templates"]),
+	})
+	async setSignature(@Input() input: z.infer<typeof signatureInput>) {
+		return this.templates.setSignature(input);
 	}
 
 	@Mutation({

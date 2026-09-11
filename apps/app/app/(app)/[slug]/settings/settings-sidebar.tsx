@@ -23,6 +23,7 @@ const ITEMS: SettingsNavItem[] = [
 	{ title: "API Keys", href: `${ROOT}/api-keys` },
 	{ title: "Import", href: `${ROOT}/import` },
 	{ title: "Templates", href: `${ROOT}/templates` },
+	{ title: "Signature", href: `${ROOT}/signature` },
 	{ title: "SSO", href: `${ROOT}/sso` },
 ];
 

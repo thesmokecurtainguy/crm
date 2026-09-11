@@ -33,7 +33,7 @@ import { savedViewListInput, savedViewListOutput, savedViewCreateInput, savedVie
 import { agentModelOutput, modelCatalogOutput, setAgentModelInput, researchKeyOutput, setResearchKeyInput, archiveRetentionOutput, setArchiveRetentionDaysInput } from "../settings/settings.contracts";
 import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannelsOutput, slackJoinChannelInput, slackJoinChannelOutput, slackRefreshPeopleOutput, slackCreateChannelInput, slackCreateChannelOutput, slackDisconnectOutput } from "../slack/slack.contracts";
 import { ssoSignInOptionsOutput, ssoSettingsOutput, ssoProviderListInput, ssoProviderListOutput, registerSsoProviderInput, ssoProviderOutput, deleteSsoProviderInput, deleteSsoProviderOutput } from "../sso/sso.contracts";
-import { templateListInput, templateListOutput, templateCreateInput, templateOutput, templateUpdateInput, templateIdInput, templateRenderInput, templateRenderOutput, templateValuesInput, templateValuesOutput, sendEmailInput, sendEmailOutput } from "../templates/templates.contracts";
+import { templateListInput, templateListOutput, templateCreateInput, templateOutput, templateUpdateInput, templateIdInput, templateRenderInput, templateRenderOutput, templateValuesInput, templateValuesOutput, signatureOutput, signatureInput, sendEmailInput, sendEmailOutput } from "../templates/templates.contracts";
 import { trackingSettingsOutput, trackingFlagInput, cookieLifetimeInput, addDomainInput, trackedDomainOutput, removeDomainInput, rotateSiteIdOutput, verifyInput, verifyOutput, sourcesOutput, companyActivityInput, websiteActivityOutput, contactActivityInput } from "../tracking/tracking.contracts";
 import { workspaceOutput, memberListInput, memberListOutput, updateWorkspaceInput, setMemberRoleInput, workspaceMemberOutput } from "../workspace/workspace.contracts";
 import { writeListInput, writeListOutput, draftEmailInput, writeResultOutput, createEventInput, moveEventInput, proposeTodoInput, writeIdInput } from "../writes/writes.contracts";
@@ -807,6 +807,13 @@ const appRouter = t.router({
       .input(templateValuesInput)
       .output(templateValuesOutput)
       .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    signature: publicProcedure
+      .output(signatureOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    setSignature: publicProcedure
+      .input(signatureInput)
+      .output(signatureOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
     sendEmail: publicProcedure
       .input(sendEmailInput)
       .output(sendEmailOutput)

@@ -14,6 +14,7 @@ import { MailboxTokenService } from "../mailbox/mailbox-token.service";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 const TIME_ZONE = "America/New_York";
+const SETTINGS_ID = "app";
 
 export type RenderContext = {
 	contactId?: string | null;
@@ -98,6 +99,44 @@ export class TemplatesService {
 			where: { id },
 			data: { archivedAt: new Date() },
 		});
+	}
+
+	async signature() {
+		const row = await this.db.appSetting.findUnique({
+			where: { id: SETTINGS_ID },
+			select: {
+				signatureFull: true,
+				signatureShort: true,
+				signatureLogoUrl: true,
+			},
+		});
+		return {
+			full: row?.signatureFull ?? "",
+			short: row?.signatureShort ?? "",
+			logoUrl: row?.signatureLogoUrl ?? null,
+		};
+	}
+
+	async setSignature(input: {
+		full: string;
+		short: string;
+		logoUrl?: string | null;
+	}) {
+		await this.db.appSetting.upsert({
+			where: { id: SETTINGS_ID },
+			create: {
+				id: SETTINGS_ID,
+				signatureFull: input.full,
+				signatureShort: input.short,
+				signatureLogoUrl: input.logoUrl ?? null,
+			},
+			update: {
+				signatureFull: input.full,
+				signatureShort: input.short,
+				signatureLogoUrl: input.logoUrl ?? null,
+			},
+		});
+		return this.signature();
 	}
 
 	async values(context: RenderContext): Promise<Record<string, string>> {
@@ -200,6 +239,7 @@ export class TemplatesService {
 			projectId?: string | null;
 			dealId?: string | null;
 			gmailThreadId?: string | null;
+			logoUrl?: string | null;
 		},
 	) {
 		const account = await this.db.account.findFirst({
@@ -227,6 +267,7 @@ export class TemplatesService {
 			cc: input.cc,
 			subject: input.subject,
 			body: input.body,
+			logoUrl: input.logoUrl ?? null,
 		});
 		const result = await this.api.send<{ id: string; threadId?: string }>(
 			"POST",
@@ -343,23 +384,51 @@ function day(d: Date): string {
 	}).format(d);
 }
 
+function htmlBody(body: string, logoUrl: string | null): string {
+	const esc = (s: string) =>
+		s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	const paragraphs = body
+		.split(/\n{2,}/)
+		.map(
+			(p) => `<p style="margin:0 0 12px">${esc(p).replace(/\n/g, "<br>")}</p>`,
+		)
+		.join("");
+	const logo = logoUrl
+		? `<p style="margin:12px 0 0"><img src="${esc(logoUrl)}" alt="" style="max-height:64px;height:auto;width:auto"></p>`
+		: "";
+	return `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">${paragraphs}${logo}</div>`;
+}
+
 function mime(message: {
 	from: string;
 	to: string[];
 	cc: string[];
 	subject: string;
 	body: string;
+	logoUrl: string | null;
 }): string {
+	const boundary = `b_${Date.now().toString(36)}`;
 	const lines = [
 		`From: ${message.from}`,
 		`To: ${message.to.join(", ")}`,
 		...(message.cc.length ? [`Cc: ${message.cc.join(", ")}`] : []),
 		`Subject: ${encodeHeader(message.subject)}`,
 		"MIME-Version: 1.0",
+		`Content-Type: multipart/alternative; boundary="${boundary}"`,
+		"",
+		`--${boundary}`,
 		'Content-Type: text/plain; charset="UTF-8"',
 		"Content-Transfer-Encoding: 8bit",
 		"",
 		message.body,
+		"",
+		`--${boundary}`,
+		'Content-Type: text/html; charset="UTF-8"',
+		"Content-Transfer-Encoding: 8bit",
+		"",
+		htmlBody(message.body, message.logoUrl),
+		"",
+		`--${boundary}--`,
 	];
 	return Buffer.from(lines.join("\r\n"), "utf8")
 		.toString("base64")

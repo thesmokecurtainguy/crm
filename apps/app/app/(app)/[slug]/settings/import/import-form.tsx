@@ -203,6 +203,85 @@ function normalizeLinkedin(raw: string): string {
 	return `https://www.${v.replace(/^www\./, "")}`;
 }
 
+const CERTENGINE_HEADERS = [
+	"participant_name",
+	"attendee_email",
+	"course_location",
+	"completion_date",
+];
+
+function isCertEngineExport(headers: string[]): boolean {
+	const set = new Set(headers.map((h) => h.trim().toLowerCase()));
+	return CERTENGINE_HEADERS.every((h) => set.has(h));
+}
+
+function certDate(raw: string): string {
+	const v = raw.trim();
+	if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+	const d = new Date(v);
+	return Number.isNaN(d.getTime()) ? v : d.toISOString().slice(0, 10);
+}
+
+function splitLocation(raw: string): {
+	firm: string;
+	city: string;
+	state: string;
+} {
+	const v = raw.trim();
+	const m = /^(.*?)\s+-\s+([A-Za-z .]+?),\s*([A-Z]{2})$/.exec(v);
+	if (m)
+		return {
+			firm: (m[1] ?? "").trim(),
+			city: (m[2] ?? "").trim(),
+			state: m[3] ?? "",
+		};
+	const m2 = /^(.*?)\s+-\s+(.*)$/.exec(v);
+	if (m2)
+		return {
+			firm: (m2[1] ?? "").trim(),
+			city: (m2[2] ?? "").trim(),
+			state: "",
+		};
+	return { firm: v, city: "", state: "" };
+}
+
+function shapeCertEngine(rows: Record<string, string>[]): CsvTable {
+	const out = rows.map((row) => {
+		const { firm, city, state } = splitLocation(row.course_location ?? "");
+		const email = (row.attendee_email ?? "").trim().toLowerCase();
+		const domain = email.includes("@") ? (email.split("@")[1] ?? "") : "";
+		const date = certDate(row.completion_date ?? "");
+		const course = (row.course_name ?? "").trim();
+		const cert = (row.certificate_id ?? "").trim();
+		const url = (row.blob_url ?? "").trim();
+		return {
+			"Company Name": firm,
+			"Company Website": domain,
+			"Company City": city,
+			"Company State": state,
+			"Full Name": (row.participant_name ?? "").trim(),
+			Email: email,
+			"Note Date": date,
+			"Note Subject": course ? `AIA box lunch: ${course}` : "AIA box lunch",
+			Note: `Attended John's AIA presentation${course ? ` "${course}"` : ""} at ${firm}${
+				city ? ` - ${city}` : ""
+			} on ${date}.${cert ? ` CE certificate #${cert}` : ""}${url ? `: ${url}` : ""}`,
+		};
+	});
+	const headers = [
+		"Company Name",
+		"Company Website",
+		"Company City",
+		"Company State",
+		"Full Name",
+		"Email",
+		"Note Date",
+		"Note Subject",
+		"Note",
+	];
+	return { headers, rows: out };
+}
+
 function normalizePhone(raw: string): string {
 	const trimmed = raw.trim().replace(/\.0+$/, "");
 	const digits = trimmed.replace(/\D/g, "");
@@ -311,6 +390,11 @@ export function ImportForm() {
 		if (isConstructConnectExport(parsed.headers)) {
 			setCcProjects(parseConstructConnect(parsed.rows));
 			setMapping({});
+		} else if (isCertEngineExport(parsed.headers)) {
+			const shaped = shapeCertEngine(parsed.rows);
+			setTable(shaped);
+			setCcProjects(null);
+			setMapping(autoMap(shaped.headers));
 		} else {
 			setCcProjects(null);
 			setMapping(autoMap(parsed.headers));

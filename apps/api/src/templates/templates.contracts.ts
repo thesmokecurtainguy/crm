@@ -58,6 +58,7 @@ export const sendEmailInput = z.object({
 	cc: z.array(email).default([]),
 	subject: z.string().trim().min(1).max(200),
 	body: z.string().trim().min(1).max(20_000),
+	logoUrl: z.string().trim().url().nullable().optional(),
 	gmailThreadId: z.string().nullable().optional(),
 	...context,
 });
@@ -66,4 +67,16 @@ export const sendEmailOutput = z.object({
 	sent: z.boolean(),
 	gmailMessageId: z.string(),
 	gmailThreadId: z.string().nullable(),
+});
+
+export const signatureOutput = z.object({
+	full: z.string(),
+	short: z.string(),
+	logoUrl: z.string().nullable(),
+});
+
+export const signatureInput = z.object({
+	full: z.string().max(4000),
+	short: z.string().max(2000),
+	logoUrl: z.string().trim().url().nullable().optional(),
 });

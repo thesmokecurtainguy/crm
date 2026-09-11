@@ -1538,6 +1538,10 @@ model AppSetting {
 
   agentCalendarId String?
 
+  signatureFull    String?
+  signatureShort   String?
+  signatureLogoUrl String?
+
   trackingSiteId           String? @unique
   trackingCrossDomain      Boolean @default(true)
   trackingLimitToDomains   Boolean @default(true)

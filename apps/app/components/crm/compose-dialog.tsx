@@ -33,9 +33,18 @@ export type ComposeContext = {
 	dealId?: string | null;
 	subject?: string | null;
 	body?: string | null;
+	reply?: boolean;
+	gmailThreadId?: string | null;
 };
 
 const NONE = "__none__";
+
+function withSignature(body: string, signature: string): string {
+	const trimmed = body.replace(/\s+$/, "");
+	if (!signature.trim()) return trimmed;
+	if (trimmed.endsWith(signature.trim())) return trimmed;
+	return `${trimmed}\n\n${signature.trim()}`;
+}
 
 export function ComposeDialog({
 	open,
@@ -61,6 +70,15 @@ export function ComposeDialog({
 		...trpc.templates.list.queryOptions({ includeArchived: false }),
 		enabled: open,
 	});
+	const signature = useQuery({
+		...trpc.templates.signature.queryOptions(),
+		enabled: open,
+	});
+	const [useLogo, setUseLogo] = useState(true);
+
+	const signatureBlock = context.reply
+		? signature.data?.short
+		: signature.data?.full;
 
 	useEffect(() => {
 		if (!open) return;
@@ -68,8 +86,16 @@ export function ComposeDialog({
 		setCc("");
 		setTemplateId(NONE);
 		setSubject(context.subject ?? "");
-		setBody(context.body ?? "");
-	}, [open, context.to, context.subject, context.body]);
+		setBody(withSignature(context.body ?? "", signatureBlock ?? ""));
+		setUseLogo(!context.reply);
+	}, [
+		open,
+		context.to,
+		context.subject,
+		context.body,
+		context.reply,
+		signatureBlock,
+	]);
 
 	const send = useMutation(
 		trpc.templates.sendEmail.mutationOptions({
@@ -99,7 +125,7 @@ export function ComposeDialog({
 				}),
 			);
 			setSubject(rendered.subject);
-			setBody(rendered.body);
+			setBody(withSignature(rendered.body, signatureBlock ?? ""));
 			if (rendered.missing.length > 0) {
 				toast.message(
 					`Left blank (nothing on the record): ${rendered.missing.join(", ")}`,
@@ -126,9 +152,9 @@ export function ComposeDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl">
+			<DialogContent className="max-h-[92vh] w-[min(96vw,1100px)] max-w-none overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>New email</DialogTitle>
+					<DialogTitle>{context.reply ? "Reply" : "New email"}</DialogTitle>
 					<DialogDescription>
 						Sends from your Gmail, threads normally, and lands on the record.
 					</DialogDescription>
@@ -182,12 +208,22 @@ export function ComposeDialog({
 					<Field>
 						<FieldLabel>Body</FieldLabel>
 						<Textarea
-							rows={14}
+							rows={22}
 							value={body}
 							onChange={(e) => setBody(e.target.value)}
-							className="font-sans"
+							className="min-h-[420px] font-sans text-[15px] leading-relaxed"
 						/>
 					</Field>
+					{signature.data?.logoUrl ? (
+						<label className="flex items-center gap-2 text-sm">
+							<input
+								type="checkbox"
+								checked={useLogo}
+								onChange={(e) => setUseLogo(e.target.checked)}
+							/>
+							Include the signature logo
+						</label>
+					) : null}
 				</FieldGroup>
 				<div className="flex items-center justify-end gap-2">
 					<Button variant="ghost" onClick={() => onOpenChange(false)}>
@@ -205,6 +241,8 @@ export function ComposeDialog({
 								companyId: context.companyId ?? null,
 								projectId: context.projectId ?? null,
 								dealId: context.dealId ?? null,
+								gmailThreadId: context.gmailThreadId ?? null,
+								logoUrl: useLogo ? (signature.data?.logoUrl ?? null) : null,
 							})
 						}
 					>
