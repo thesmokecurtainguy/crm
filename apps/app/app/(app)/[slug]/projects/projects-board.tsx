@@ -49,14 +49,31 @@ export function ProjectsBoard() {
 	const [dragging, setDragging] = useState<string | null>(null);
 	const [over, setOver] = useState<ProjectStage | null>(null);
 
-	const projects = useQuery({
+	const first = useQuery({
 		...trpc.projects.list.queryOptions({
 			status: "pipeline",
-			pageSize: 200,
+			pageSize: 100,
 			page: 1,
 		}),
 		placeholderData: (previous) => previous,
 	});
+	const second = useQuery({
+		...trpc.projects.list.queryOptions({
+			status: "pipeline",
+			pageSize: 100,
+			page: 2,
+		}),
+		enabled: (first.data?.total ?? 0) > 100,
+		placeholderData: (previous) => previous,
+	});
+	const projects = {
+		data: first.data
+			? {
+					rows: [...first.data.rows, ...(second.data?.rows ?? [])],
+					total: first.data.total,
+				}
+			: undefined,
+	};
 
 	const update = useMutation(
 		trpc.projects.update.mutationOptions({
