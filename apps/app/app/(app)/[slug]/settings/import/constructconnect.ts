@@ -98,6 +98,14 @@ const STATE_CODES: Record<string, string> = {
 	"puerto rico": "PR",
 };
 
+function slug(value: string): string {
+	return value
+		.toLowerCase()
+		.replace(/&/g, " and ")
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
+
 export function stateCode(raw: string): string {
 	const v = raw.trim();
 	if (!v) return "";
@@ -197,8 +205,11 @@ export function parseConstructConnect(
 		unescapeHtml((row[key] ?? "").trim());
 
 	for (const row of rows) {
-		const externalId = get(row, "Project Id");
-		if (!externalId) continue;
+		const title = get(row, "Project Title");
+		if (!title) continue;
+		const externalId =
+			get(row, "Project Id") ||
+			`name:${slug(title)}:${stateCode(get(row, "Project State/Province")).toLowerCase()}`;
 
 		let project = byId.get(externalId);
 		if (!project) {

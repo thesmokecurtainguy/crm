@@ -442,7 +442,8 @@ export function ProjectDetail({ id }: { id: string }) {
 									<Launch data-icon="inline-end" />
 								</a>
 							</Button>
-						) : current.externalId ? (
+						) : current.externalId &&
+							!current.externalId.startsWith("name:") ? (
 							<span>ConstructConnect #{current.externalId}</span>
 						) : null}
 						{current.archivedAt ? <span>Archived</span> : null}

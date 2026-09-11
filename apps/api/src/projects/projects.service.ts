@@ -253,15 +253,26 @@ export class ProjectsService {
 		await this.requireCompanies(input);
 		const externalId = input.externalId.trim();
 
-		const existing = await this.db.project.findUnique({
+		const existingSelect = {
+			id: true,
+			stage: true,
+			leadStatus: true,
+			lastUpdateReason: true,
+		} as const;
+
+		let existing = await this.db.project.findUnique({
 			where: { externalId },
-			select: {
-				id: true,
-				stage: true,
-				leadStatus: true,
-				lastUpdateReason: true,
-			},
+			select: existingSelect,
 		});
+
+		if (!existing && !isNameKeyedExternalId(externalId)) {
+			existing = await this.db.project.findUnique({
+				where: {
+					externalId: nameKeyedExternalId(input.name, input.stateCode),
+				},
+				select: existingSelect,
+			});
+		}
 
 		if (!existing) {
 			const project = await this.db.project.create({
@@ -870,6 +881,27 @@ function isProjectStage(value: string): value is ProjectStage {
 
 function isLeadStatus(value: string): value is LeadStatus {
 	return LEAD_STATUSES.has(value);
+}
+
+const NAME_KEYED_EXTERNAL_ID_PREFIX = "name:";
+
+function slugProjectName(value: string): string {
+	return value
+		.toLowerCase()
+		.replace(/&/g, " and ")
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
+
+function nameKeyedExternalId(
+	name: string,
+	stateCode: string | null | undefined,
+): string {
+	return `${NAME_KEYED_EXTERNAL_ID_PREFIX}${slugProjectName(name)}:${(stateCode ?? "").toLowerCase()}`;
+}
+
+function isNameKeyedExternalId(value: string): boolean {
+	return value.startsWith(NAME_KEYED_EXTERNAL_ID_PREFIX);
 }
 
 function clean(value: string | null | undefined): string | null {
