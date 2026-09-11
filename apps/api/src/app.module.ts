@@ -33,6 +33,7 @@ import { ProjectsModule } from "./projects/projects.module";
 import { SavedViewsModule } from "./saved-views/saved-views.module";
 import { SearchModule } from "./search/search.module";
 import { SettingsModule } from "./settings/settings.module";
+import { SkillsModule } from "./skills/skills.module";
 import { SlackModule } from "./slack/slack.module";
 import { SsoModule } from "./sso/sso.module";
 import { SyncModule } from "./sync/sync.module";
@@ -72,6 +73,7 @@ import { WritesModule } from "./writes/writes.module";
 		BriefModule,
 		CalendarModule,
 		TemplatesModule,
+		SkillsModule,
 		FieldsModule,
 		ActivitiesModule,
 		AgentModule,

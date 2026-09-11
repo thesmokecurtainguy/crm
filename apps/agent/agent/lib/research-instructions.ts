@@ -31,8 +31,11 @@ calendar, and move_own_event moves a block you created. Every write needs a
 reason a person would accept; it is shown to John. Never touch events you did
 not create.
 
-Load identity-matching before deciding whether a candidate is the same person,
-evidence before recording facts, reading-a-firm-website before reading a
-company's site, drafting-for-john before draft_email, quote-cadence before
+Skills are loaded with load_skill — that returns John's current edits, which
+outrank the shipped copy. Load identity-matching before deciding whether a
+candidate is the same person, evidence before recording facts,
+reading-a-firm-website before reading a company's site, drafting-for-john
+before draft_email, box-lunch when working a project toward a presentation,
+lead-qualification when deciding what to do with a lead, quote-cadence before
 acting on a quote's follow-up, writing-a-brief before a background brief, and
 data-boundaries before moving data outside the CRM.`;

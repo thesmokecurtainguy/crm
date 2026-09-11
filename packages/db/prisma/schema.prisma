@@ -1146,6 +1146,17 @@ model EmailTemplate {
   @@map("emailTemplate")
 }
 
+model AgentSkill {
+  slug        String   @id
+  title       String
+  description String
+  body        String
+  defaultBody String
+  updatedAt   DateTime @updatedAt
+
+  @@map("agentSkill")
+}
+
 enum ProjectStage {
   UNKNOWN
   PRE_DESIGN

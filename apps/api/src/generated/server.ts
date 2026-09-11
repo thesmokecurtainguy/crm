@@ -31,6 +31,7 @@ import { purgeSyncedDataOutput, revokeAccessOutput, microsoftConnectionStatusOut
 import { projectListInput, projectListOutput, projectOptionsInput, projectOptionOutput, projectIdInput, projectDetailOutput, projectPeopleOutput, projectsForCompanyInput, projectLinkOutput, projectsForContactInput, participantListOutput, participantAddInput, participantRemoveInput, projectCreateInput, projectSummaryOutput, projectUpsertInput, projectUpdateArgs, projectTriageInput, projectArchiveResultOutput, projectBulkTriageInput, projectBulkResultOutput, projectBulkOwnerInput, projectBulkParticipantInput, projectBulkInput } from "../projects/projects.contracts";
 import { savedViewListInput, savedViewListOutput, savedViewCreateInput, savedViewOutput, savedViewUpdateArgs, savedViewIdInput, savedViewDeleteOutput } from "../saved-views/saved-views.contracts";
 import { agentModelOutput, modelCatalogOutput, setAgentModelInput, researchKeyOutput, setResearchKeyInput, archiveRetentionOutput, setArchiveRetentionDaysInput } from "../settings/settings.contracts";
+import { skillListOutput, skillUpdateInput, skillOutput, skillSlugInput } from "../skills/skills.contracts";
 import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannelsOutput, slackJoinChannelInput, slackJoinChannelOutput, slackRefreshPeopleOutput, slackCreateChannelInput, slackCreateChannelOutput, slackDisconnectOutput } from "../slack/slack.contracts";
 import { ssoSignInOptionsOutput, ssoSettingsOutput, ssoProviderListInput, ssoProviderListOutput, registerSsoProviderInput, ssoProviderOutput, deleteSsoProviderInput, deleteSsoProviderOutput } from "../sso/sso.contracts";
 import { templateListInput, templateListOutput, templateCreateInput, templateOutput, templateUpdateInput, templateIdInput, templateRenderInput, templateRenderOutput, templateValuesInput, templateValuesOutput, signatureOutput, signatureInput, sendEmailInput, sendEmailOutput } from "../templates/templates.contracts";
@@ -734,6 +735,19 @@ const appRouter = t.router({
     setArchiveRetention: publicProcedure
       .input(setArchiveRetentionDaysInput)
       .output(archiveRetentionOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
+    }),
+  skills: t.router({
+    list: publicProcedure
+      .output(skillListOutput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    update: publicProcedure
+      .input(skillUpdateInput)
+      .output(skillOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    reset: publicProcedure
+      .input(skillSlugInput)
+      .output(skillOutput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)
     }),
   slack: t.router({
