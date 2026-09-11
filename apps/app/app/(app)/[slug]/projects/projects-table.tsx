@@ -111,6 +111,7 @@ const COLUMNS: DataTableColumn<ProjectRow>[] = [
 		id: "leadStatus",
 		header: "Triage",
 		width: "w-[10%]",
+		sortable: true,
 		hideBelow: "md",
 		cell: (row) => (
 			<StatusIndicator
@@ -123,6 +124,7 @@ const COLUMNS: DataTableColumn<ProjectRow>[] = [
 		id: "architect",
 		header: "Architect",
 		width: "w-[16%]",
+		sortable: true,
 		cell: (row) => <CompanyCell company={row.architect} />,
 	},
 	{
@@ -174,6 +176,7 @@ const COLUMNS: DataTableColumn<ProjectRow>[] = [
 		id: "owner",
 		header: "Owner",
 		width: "w-[10%]",
+		sortable: true,
 		defaultHidden: true,
 		cell: (row) => <OwnerCell owner={row.owner} />,
 	},

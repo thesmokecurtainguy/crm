@@ -143,6 +143,12 @@ const SORTABLE: OrderByColumns<Prisma.ProjectOrderByWithRelationInput[]> = {
 	bidDate: (dir) => [{ bidDate: { sort: dir, nulls: "last" } }],
 	startDate: (dir) => [{ startDate: { sort: dir, nulls: "last" } }],
 	stateCode: (dir) => [{ stateCode: dir }, { city: dir }],
+	city: (dir) => [{ city: { sort: dir, nulls: "last" } }, { name: "asc" }],
+	architect: (dir) => [{ architect: { name: dir } }, { name: "asc" }],
+	gc: (dir) => [{ gc: { name: dir } }, { name: "asc" }],
+	developer: (dir) => [{ developer: { name: dir } }, { name: "asc" }],
+	owner: (dir) => [{ owner: { name: dir } }, { name: "asc" }],
+	leadStatus: (dir) => [{ leadStatus: dir }, { name: "asc" }],
 	lastUpdateAt: (dir) => [{ lastUpdateAt: { sort: dir, nulls: "last" } }],
 	updatedAt: (dir) => [{ updatedAt: dir }],
 };
