@@ -10,6 +10,7 @@ import { AuthModule } from "./auth/auth.module";
 import { BackfillModule } from "./backfill/backfill.module";
 import { BriefModule } from "./brief/brief.module";
 import { AppCacheModule } from "./cache/cache.module";
+import { CalendarModule } from "./calendar/calendar.module";
 import { CompaniesModule } from "./companies/companies.module";
 import { validateEnv } from "./config/env.validation";
 import { ConstructConnectModule } from "./constructconnect/constructconnect.module";
@@ -69,6 +70,7 @@ import { WritesModule } from "./writes/writes.module";
 		ConstructConnectModule,
 		WritesModule,
 		BriefModule,
+		CalendarModule,
 		TemplatesModule,
 		FieldsModule,
 		ActivitiesModule,

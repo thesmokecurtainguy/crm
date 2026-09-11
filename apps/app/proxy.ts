@@ -24,6 +24,7 @@ const SECTIONS = [
 	"/deals",
 	"/projects",
 	"/overview",
+	"/calendar",
 	"/settings",
 ];
 
