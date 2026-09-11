@@ -105,13 +105,17 @@ export function createListSearchParams<
 	);
 
 	const tabExtras: Record<string, StringParser> = {};
-	if (tabId) tabExtras[tabId] = parseAsString.withDefault("all");
+	if (tabId) {
+		tabExtras[tabId] = parseAsString
+			.withDefault("all")
+			.withOptions({ history: "push" });
+	}
 
 	const facetExtras: Record<string, ArrayParser> = {};
 	for (const id of facetIds) {
-		facetExtras[id] = parseAsNativeArrayOf(parseAsString).withDefault(
-			facetDefaults?.[id] ?? [],
-		);
+		facetExtras[id] = parseAsNativeArrayOf(parseAsString)
+			.withDefault(facetDefaults?.[id] ?? [])
+			.withOptions({ history: "push" });
 	}
 
 	const parsers = {

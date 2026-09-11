@@ -16,7 +16,7 @@ import {
 	SelectValue,
 } from "@crm/ui/components/select";
 import { Spinner } from "@crm/ui/components/spinner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
@@ -281,6 +281,7 @@ export function ImportForm() {
 	const updateContact = useMutation(trpc.contacts.update.mutationOptions());
 	const createField = useMutation(trpc.fields.create.mutationOptions());
 	const upsertProject = useMutation(trpc.projects.upsert.mutationOptions());
+	const me = useQuery(trpc.users.me.queryOptions());
 	const createActivity = useMutation(trpc.activities.create.mutationOptions());
 	const fillEmails = useMutation(trpc.companies.fillEmails.mutationOptions());
 
@@ -736,6 +737,7 @@ export function ImportForm() {
 			architectId,
 			gcId,
 			developerId,
+			ownerId: me.data?.id ?? null,
 		});
 		if (saved.created) result.projectsCreated++;
 		else result.projectsUpdated++;

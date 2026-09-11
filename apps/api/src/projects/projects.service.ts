@@ -704,6 +704,38 @@ export class ProjectsService {
 		});
 	}
 
+	async bulkSetOwner(
+		ids: string[],
+		ownerId: string | null,
+	): Promise<BulkResult> {
+		await requireOwner(this.db, ownerId);
+		return runBulk(ids, async (id) => {
+			const result = await this.db.project.updateMany({
+				where: { id, archivedAt: null },
+				data: { ownerId },
+			});
+			return result.count === 0 ? null : id;
+		});
+	}
+
+	async bulkAddParticipant(
+		ids: string[],
+		input: { contactId?: string; companyId?: string; role: string },
+	): Promise<BulkResult> {
+		if (Boolean(input.contactId) === Boolean(input.companyId)) {
+			throw new BadRequestException("Pick a person or a firm, not both.");
+		}
+		return runBulk(ids, async (id) => {
+			const result = await this.addParticipant({
+				projectId: id,
+				contactId: input.contactId,
+				companyId: input.companyId,
+				role: input.role,
+			});
+			return result.created ? id : null;
+		});
+	}
+
 	async bulkArchive(ids: string[]): Promise<BulkResult> {
 		return runBulk(ids, async (id) => {
 			const result = await this.db.project.updateMany({

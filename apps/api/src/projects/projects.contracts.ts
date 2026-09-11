@@ -296,3 +296,13 @@ export const projectLinkOutput = z.array(
 
 export const projectsForCompanyInput = z.object({ companyId: z.string() });
 export const projectsForContactInput = z.object({ contactId: z.string() });
+
+export const projectBulkOwnerInput = bulkIdsInput.extend({
+	ownerId: z.string().nullable(),
+});
+
+export const projectBulkParticipantInput = bulkIdsInput.extend({
+	contactId: z.string().optional(),
+	companyId: z.string().optional(),
+	role: z.string().trim().min(1).max(80),
+});

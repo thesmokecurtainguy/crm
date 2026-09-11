@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CompanyCell } from "@/components/crm/company-cell";
+import { ContactSearch } from "@/components/crm/contact-search";
 import { OwnerCell } from "@/components/crm/owner-cell";
 import { ListSearch } from "@/components/data-table/list-search";
 import { useTableQuery } from "@/components/data-table/use-table-query";
@@ -198,6 +199,16 @@ const COLUMNS: DataTableColumn<ProjectRow>[] = [
 	},
 ];
 
+const ASSIGN_ROLES = [
+	"Project architect",
+	"Principal",
+	"Project manager",
+	"Spec writer",
+	"Estimator",
+	"Owner's rep",
+	"Other",
+];
+
 const ARCHIVED_COLUMN: DataTableColumn<ProjectRow> = {
 	id: "archivedAt",
 	header: "Archived",
@@ -269,7 +280,40 @@ export function ProjectsTable() {
 		}),
 	);
 
-	const bulkBusy = bulkArchive.isPending || bulkTriage.isPending;
+	const me = useQuery(trpc.users.me.queryOptions());
+	const [assignRole, setAssignRole] = useState("Project architect");
+
+	const bulkOwner = useMutation(
+		trpc.projects.bulkSetOwner.mutationOptions({
+			onSuccess: async (result) => {
+				await projects.refetch();
+				selection.clear();
+				toast.success(`Owner set on ${result.succeeded} projects.`);
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
+	const bulkAssign = useMutation(
+		trpc.projects.bulkAddParticipant.mutationOptions({
+			onSuccess: async (result) => {
+				await projects.refetch();
+				selection.clear();
+				toast.success(
+					`Assigned on ${result.succeeded} projects${
+						result.skipped ? ` (${result.skipped} already had them)` : ""
+					}.`,
+				);
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
+	const bulkBusy =
+		bulkArchive.isPending ||
+		bulkTriage.isPending ||
+		bulkOwner.isPending ||
+		bulkAssign.isPending;
 
 	const facetCounts = projects.data?.facetCounts;
 
@@ -408,6 +452,41 @@ export function ProjectsTable() {
 						>
 							Back to lead
 						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							disabled={bulkBusy || selection.ids.length === 0 || !me.data?.id}
+							onClick={() =>
+								bulkOwner.mutate({
+									ids: selection.ids,
+									ownerId: me.data?.id ?? null,
+								})
+							}
+						>
+							Make me owner
+						</Button>
+						<Select value={assignRole} onValueChange={setAssignRole}>
+							<SelectTrigger size="sm" className="w-[160px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{ASSIGN_ROLES.map((role) => (
+									<SelectItem key={role} value={role}>
+										{role}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<ContactSearch
+							label="Assign person"
+							onPick={(contact) =>
+								bulkAssign.mutate({
+									ids: selection.ids,
+									contactId: contact.id,
+									role: assignRole,
+								})
+							}
+						/>
 						<Button
 							size="sm"
 							variant="outline"

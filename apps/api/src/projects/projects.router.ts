@@ -9,6 +9,8 @@ import {
 	participantRemoveInput,
 	projectArchiveResultOutput,
 	projectBulkInput,
+	projectBulkOwnerInput,
+	projectBulkParticipantInput,
 	projectBulkResultOutput,
 	projectBulkTriageInput,
 	projectCreateInput,
@@ -188,6 +190,26 @@ export class ProjectsRouter {
 			input.stage,
 			input.watchUntil,
 		);
+	}
+
+	@Mutation({
+		input: projectBulkOwnerInput,
+		output: projectBulkResultOutput,
+		meta: restMeta("POST", "/projects/bulk/owner", ["Projects"]),
+	})
+	async bulkSetOwner(@Input() input: z.infer<typeof projectBulkOwnerInput>) {
+		return this.projects.bulkSetOwner(input.ids, input.ownerId);
+	}
+
+	@Mutation({
+		input: projectBulkParticipantInput,
+		output: projectBulkResultOutput,
+		meta: restMeta("POST", "/projects/bulk/participant", ["Projects"]),
+	})
+	async bulkAddParticipant(
+		@Input() input: z.infer<typeof projectBulkParticipantInput>,
+	) {
+		return this.projects.bulkAddParticipant(input.ids, input);
 	}
 
 	@Mutation({
