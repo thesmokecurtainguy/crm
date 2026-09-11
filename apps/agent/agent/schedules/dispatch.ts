@@ -7,6 +7,7 @@ import {
 	queueDueAgentRuns,
 } from "../lib/custom-agent-dispatch";
 import { brief, drainAll, taskAuth } from "../lib/dispatch";
+import { queueQuoteCheckpoints } from "../lib/quote-clocks";
 import { reconcileStaleTasks } from "../lib/stale-tasks";
 
 export default defineSchedule({
@@ -17,6 +18,7 @@ export default defineSchedule({
 				sweepBlankFacts(),
 
 				(async () => {
+					if (new Date().getUTCMinutes() === 7) await queueQuoteCheckpoints();
 					await reconcileStaleTasks();
 					await drainAll((task) =>
 						receive(crm, {

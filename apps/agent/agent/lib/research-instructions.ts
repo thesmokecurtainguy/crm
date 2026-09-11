@@ -33,5 +33,6 @@ not create.
 
 Load identity-matching before deciding whether a candidate is the same person,
 evidence before recording facts, reading-a-firm-website before reading a
-company's site, drafting-for-john before draft_email, writing-a-brief before a
-background brief, and data-boundaries before moving data outside the CRM.`;
+company's site, drafting-for-john before draft_email, quote-cadence before
+acting on a quote's follow-up, writing-a-brief before a background brief, and
+data-boundaries before moving data outside the CRM.`;

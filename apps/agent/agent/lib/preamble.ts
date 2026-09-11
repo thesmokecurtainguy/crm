@@ -255,6 +255,8 @@ export async function dealPreamble(
 			currency: true,
 			expectedCloseDate: true,
 			lastActivityAt: true,
+			channel: true,
+			project: { select: { id: true, name: true } },
 			company: { select: { id: true, name: true } },
 			contacts: {
 				select: {
@@ -300,6 +302,15 @@ export async function dealPreamble(
 		deal.lastActivityAt
 			? `Last touched ${deal.lastActivityAt.toDateString()}.`
 			: "Nothing has happened on it yet.",
+		...(deal.channel
+			? [
+					`This is a **quote** (${deal.channel === "DIRECT" ? "direct bid" : "through a distributor"})${
+						deal.project
+							? ` on the project **${deal.project.name}** — project id \`${deal.project.id}\``
+							: ""
+					}. The bid date is the expected close above; the follow-up clock runs from it. Load quote-cadence before acting on it.`,
+				]
+			: []),
 		...(deal.description
 			? [`The rep's own description of it: "${deal.description}"`]
 			: []),

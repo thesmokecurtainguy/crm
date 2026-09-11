@@ -1,5 +1,6 @@
 import { EnrichmentStatus } from "@crm/db";
 import { fieldBackfillPayload } from "@crm/validation/field-backfill";
+import { z } from "zod";
 import { APP_AUTH, type AppAuth } from "./app-auth";
 import { brandOutcome, runBrand } from "./brand";
 import { queueEventAgentRuns } from "./custom-agent-dispatch";
@@ -397,6 +398,12 @@ export function brief(task: LeasedTask): string {
 	return again + work(task.kind, task.reason, task.payload);
 }
 
+const quoteCheckpointPayload = z.object({
+	checkpoint: z.number(),
+	channel: z.string().nullable(),
+	projectId: z.string().nullable(),
+});
+
 function work(
 	kind: string,
 	reason: string,
@@ -418,6 +425,12 @@ function work(
 			const parsed = fieldBackfillPayload.safeParse(payload);
 			const keys = parsed.success ? parsed.data.keys.join(", ") : reason;
 			return `This record is missing a value for the custom field(s) ${keys}. Call list_fields for this record's type, read each field's brief, and call set_field_value only where you find real evidence — leave it blank rather than guess.`;
+		}
+		case "quote-checkpoint": {
+			const parsed = quoteCheckpointPayload.safeParse(payload);
+			const day = parsed.success ? parsed.data.checkpoint : "a";
+			const channel = parsed.success ? parsed.data.channel : "unknown";
+			return `This quote is at the ${day}-day checkpoint past its bid date (${reason}). Load the quote-cadence skill first. Read the deal history and the linked project, then do what the cadence says for a ${channel === "DIRECT" ? "direct bid" : "distributor quote"}: a check-in draft, a to-do for John, or an escalation. If someone already replied since the checkpoint, log what they said and stop.`;
 		}
 		default:
 			return `Handle this: ${reason}`;
