@@ -3,6 +3,7 @@ import "@crm/env/load";
 import { DEFAULT_AGENT_MODEL } from "@crm/db/settings";
 import { onTelemetryProblem, syncVersion } from "@crm/telemetry";
 import { defineAgent, defineDynamic } from "eve";
+import { AGENT } from "./lib/agent-config";
 import { logCapabilities } from "./lib/capabilities";
 import { selectedModel } from "./lib/model";
 
@@ -17,9 +18,5 @@ export default defineAgent({
 		fallback: DEFAULT_AGENT_MODEL.id,
 		events: { "session.started": () => selectedModel() },
 	}),
-	limits: {
-		maxInputTokensPerSession: 500_000,
-		maxOutputTokensPerSession: 50_000,
-		sessionTimeoutMs: 30 * 24 * 60 * 60 * 1000,
-	},
+	limits: AGENT.limits,
 });

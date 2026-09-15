@@ -1,5 +1,6 @@
 import { onSignedIn } from "@crm/auth";
 import { type Db, EnrichmentStatus, type Prisma } from "@crm/db";
+import { autoContactEnrichmentEnabled } from "@crm/db/agent-enrichment";
 import { PRIORITY } from "@crm/db/agent-tasks";
 import { readWorkspaceIdentity } from "@crm/db/workspace";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
@@ -201,6 +202,15 @@ export class BackfillService implements OnModuleInit {
 			budget: 1,
 			priority: PRIORITY.portrait,
 		});
+
+		if (!autoContactEnrichmentEnabled()) {
+			return {
+				queued: photos.queued,
+				alreadyQueued: photos.alreadyQueued,
+				remaining: Math.max(0, photoTotal - photoRows.length),
+				iconsResolving: 0,
+			};
+		}
 
 		const headroom = MAX_PER_RUN - photoRows.length;
 

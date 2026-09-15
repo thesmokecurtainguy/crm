@@ -1,4 +1,8 @@
 import { EnrichmentStatus } from "@crm/db";
+import {
+	autoContactEnrichmentEnabled,
+	CONTACT_ENRICHMENT_KINDS,
+} from "@crm/db/agent-enrichment";
 import { fieldBackfillPayload } from "@crm/validation/field-backfill";
 import { z } from "zod";
 import { APP_AUTH, type AppAuth } from "./app-auth";
@@ -6,6 +10,7 @@ import { brandOutcome, runBrand } from "./brand";
 import { queueEventAgentRuns } from "./custom-agent-dispatch";
 import { settledWithin } from "./deadline";
 import { DISPATCH } from "./dispatch-config";
+import { skipUnrequestedContactEnrichment } from "./enrichment-gate";
 import { markRunning, settle } from "./enrichment";
 import { collapsing, runLimited } from "./pool";
 import { runPortrait } from "./portrait";
@@ -138,17 +143,35 @@ export async function runResearchLane(
 ): Promise<number> {
 	if (signal?.aborted) return 0;
 
-	const tasks = await claimDue(
-		RESEARCH_BATCH,
-		{ except: DIRECT_KINDS },
+	await skipUnrequestedContactEnrichment();
+
+	const auto = autoContactEnrichmentEnabled();
+	const enrichment = await claimDue(
+		DISPATCH.research.enrichmentBatch,
+		{
+			only: CONTACT_ENRICHMENT_KINDS,
+			requestedOnly: !auto,
+		},
 		RESEARCH_LEASE_MS,
 	);
+	const other = await claimDue(
+		RESEARCH_BATCH,
+		{ except: [...DIRECT_KINDS, ...CONTACT_ENRICHMENT_KINDS] },
+		RESEARCH_LEASE_MS,
+	);
+	const tasks = [...enrichment, ...other];
 	if (tasks.length === 0) return 0;
 
 	let started = 0;
 
+	for (const task of enrichment) {
+		if (signal?.aborted) break;
+		started += 1;
+		await beginResearch(task, start);
+	}
+
 	await Promise.all(
-		tasks.map(async (task) => {
+		other.map(async (task) => {
 			if (signal?.aborted) return;
 			started += 1;
 			await beginResearch(task, start);

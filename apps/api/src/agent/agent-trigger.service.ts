@@ -1,4 +1,10 @@
 import { type Db, type FieldEntity, Prisma } from "@crm/db";
+import {
+	autoContactEnrichmentEnabled,
+	ENRICHMENT,
+	isRequestedEnrichmentPayload,
+	REQUESTED_ENRICHMENT_PAYLOAD,
+} from "@crm/db/agent-enrichment";
 import { PRIORITY } from "@crm/db/agent-tasks";
 import { CRM_EVENT_CATALOG, type CrmEventType } from "@crm/db/crm-events";
 import { RECORD_ID_COLUMNS } from "@crm/db/fields";
@@ -111,13 +117,16 @@ export class AgentTriggerService {
 		reason: string,
 		required = false,
 	): Promise<boolean> {
+		if (!required && !autoContactEnrichmentEnabled()) return false;
+
 		return this.enqueue(
 			{
 				contactId,
 				kind: "identify",
 				reason,
-				priority: PRIORITY.identify,
-				budget: 4,
+				priority: required ? PRIORITY.requested : PRIORITY.identify,
+				budget: ENRICHMENT.identify.budget,
+				payload: required ? REQUESTED_ENRICHMENT_PAYLOAD : undefined,
 			},
 			required,
 		);
@@ -318,6 +327,8 @@ export class AgentTriggerService {
 	}
 
 	async meetingSoon(contactId: string, when: Date): Promise<void> {
+		if (!autoContactEnrichmentEnabled()) return;
+
 		await this.enqueue({
 			contactId,
 			kind: "meeting-prep",
@@ -463,6 +474,26 @@ export class AgentTriggerService {
 					tx,
 					`agent-task:${task.kind}:${task.contactId ?? ""}:${task.companyId ?? ""}:${task.subject?.value ?? ""}`,
 				);
+
+				if (
+					required &&
+					task.kind === "identify" &&
+					task.contactId &&
+					isRequestedEnrichmentPayload(task.payload)
+				) {
+					const recent = await tx.agentTask.findFirst({
+						where: {
+							kind: "identify",
+							contactId: task.contactId,
+							finishedAt: {
+								gte: new Date(Date.now() - ENRICHMENT.onDemand.standDownMs),
+							},
+						},
+						select: { id: true },
+					});
+					if (recent) return false;
+				}
+
 				const pending = await tx.agentTask.findFirst({
 					where: {
 						kind: task.kind,
@@ -473,9 +504,27 @@ export class AgentTriggerService {
 							? { path: task.subject.path, equals: task.subject.value }
 							: undefined,
 					},
-					select: { id: true },
+					select: { id: true, payload: true },
 				});
-				if (pending) return false;
+				if (pending) {
+					if (
+						required &&
+						isRequestedEnrichmentPayload(task.payload) &&
+						!isRequestedEnrichmentPayload(pending.payload)
+					) {
+						await tx.agentTask.update({
+							where: { id: pending.id },
+							data: {
+								payload: task.payload,
+								reason: task.reason,
+								priority: task.priority,
+								dueAt: new Date(),
+							},
+						});
+						return true;
+					}
+					return false;
+				}
 
 				await tx.agentTask.create({
 					data: {

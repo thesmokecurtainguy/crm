@@ -8,9 +8,19 @@ import {
 export const SETTINGS_ID = "app";
 
 export const DEFAULT_AGENT_MODEL = {
-	id: "zai/glm-5.2-fast",
+	id: "spacexai/grok-4.1-fast-non-reasoning",
 	contextWindowTokens: 1_000_000,
 } as const;
+
+export const EXPENSIVE_REASONING_MODELS = [
+	"spacexai/grok-4.20-reasoning",
+	"spacexai/grok-4.20-reasoning-beta",
+	"spacexai/grok-4.20-multi-agent",
+	"spacexai/grok-4.20-multi-agent-beta",
+	"spacexai/grok-4.5",
+	"spacexai/grok-4.6",
+	"spacexai/grok-4.3",
+] as const;
 
 export interface AgentModelSetting {
 	id: string;
@@ -18,22 +28,72 @@ export interface AgentModelSetting {
 	isDefault: boolean;
 }
 
+export function isExpensiveReasoningModel(id: string): boolean {
+	const normalized = id.trim().toLowerCase();
+	if (normalized.includes("non-reasoning")) return false;
+	if (normalized.includes("reasoning")) return true;
+	if (normalized.includes("multi-agent")) return true;
+	return (EXPENSIVE_REASONING_MODELS as readonly string[]).includes(id.trim());
+}
+
+export function resolveAgentModel(input: {
+	storedId?: string | null;
+	storedContextWindow?: number | null;
+	envModel?: string | null;
+	envContextWindow?: number | null;
+}): AgentModelSetting {
+	const envId = input.envModel?.trim();
+	if (envId) {
+		return {
+			id: envId,
+			contextWindowTokens:
+				input.envContextWindow ?? DEFAULT_AGENT_MODEL.contextWindowTokens,
+			isDefault: false,
+		};
+	}
+
+	const storedId = input.storedId?.trim();
+	if (storedId && !isExpensiveReasoningModel(storedId)) {
+		return {
+			id: storedId,
+			contextWindowTokens:
+				input.storedContextWindow ?? DEFAULT_AGENT_MODEL.contextWindowTokens,
+			isDefault: false,
+		};
+	}
+
+	return { ...DEFAULT_AGENT_MODEL, isDefault: true };
+}
+
+export function agentModelFromEnv(
+	env: NodeJS.ProcessEnv = process.env,
+): Pick<AgentModelSetting, "id" | "contextWindowTokens"> | null {
+	const envModel = env.AGENT_MODEL?.trim();
+	if (!envModel) return null;
+
+	const parsedWindow = Number(env.AGENT_MODEL_CONTEXT_WINDOW);
+	return {
+		id: envModel,
+		contextWindowTokens:
+			Number.isFinite(parsedWindow) && parsedWindow > 0
+				? parsedWindow
+				: DEFAULT_AGENT_MODEL.contextWindowTokens,
+	};
+}
+
 export async function readAgentModel(db: Db): Promise<AgentModelSetting> {
+	const fromEnv = agentModelFromEnv();
 	const row = await db.appSetting.findUnique({
 		where: { id: SETTINGS_ID },
 		select: { agentModelId: true, agentModelContextWindow: true },
 	});
 
-	if (!row?.agentModelId) {
-		return { ...DEFAULT_AGENT_MODEL, isDefault: true };
-	}
-
-	return {
-		id: row.agentModelId,
-		contextWindowTokens:
-			row.agentModelContextWindow ?? DEFAULT_AGENT_MODEL.contextWindowTokens,
-		isDefault: false,
-	};
+	return resolveAgentModel({
+		storedId: row?.agentModelId,
+		storedContextWindow: row?.agentModelContextWindow,
+		envModel: fromEnv?.id,
+		envContextWindow: fromEnv?.contextWindowTokens,
+	});
 }
 
 export async function writeAgentModel(

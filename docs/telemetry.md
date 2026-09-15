@@ -90,7 +90,7 @@ whose event never arrived, which cannot be recovered.
 | `node_version` | Major only, e.g. `22` |
 | `postgres_version` | Major only, e.g. `17` |
 | `members_bucket` | How many people work here, in bands |
-| `agent_model_id` | The model chosen on Settings → General, e.g. `zai/glm-5.2-fast` |
+| `agent_model_id` | The model in use, e.g. `spacexai/grok-4.1-fast-non-reasoning` |
 | `agent_model_context_window` | Its context window in tokens |
 | `seed_only` | True when every contact came from `bun run db:seed` |
 

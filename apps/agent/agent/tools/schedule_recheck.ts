@@ -1,3 +1,4 @@
+import { autoContactEnrichmentEnabled } from "@crm/db/agent-enrichment";
 import { PRIORITY } from "@crm/db/agent-tasks";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
@@ -36,6 +37,12 @@ export default defineTool({
 	}),
 	async execute({ contactId, days, reason, budget }, ctx) {
 		assertResearchPurpose(ctx);
+		if (!autoContactEnrichmentEnabled()) {
+			return {
+				scheduled: false as const,
+				reason: "Automatic contact enrichment is off.",
+			};
+		}
 		const dueAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
 		await scheduleTask({

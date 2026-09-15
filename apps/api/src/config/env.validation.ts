@@ -126,6 +126,18 @@ export class EnvironmentVariables {
 	@IsOptional()
 	@IsString()
 	CRM_TELEMETRY_DISABLED?: string;
+
+	@IsOptional()
+	@IsString()
+	AUTO_CONTACT_ENRICHMENT?: string;
+
+	@IsOptional()
+	@IsString()
+	AGENT_MODEL?: string;
+
+	@IsOptional()
+	@IsString()
+	AGENT_MODEL_CONTEXT_WINDOW?: string;
 }
 
 export type RawEnvironment = Record<string, string | undefined>;

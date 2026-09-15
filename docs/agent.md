@@ -11,16 +11,50 @@ are in `docs/setup.md`.
 
 ## Model
 
-Default `zai/glm-5.2-fast`; `DEFAULT_AGENT_MODEL` in `@crm/db/settings` because the
-agent and the API both need it.
+Default `spacexai/grok-4.1-fast-non-reasoning`; `DEFAULT_AGENT_MODEL` in
+`@crm/db/settings` because the agent and the API both need it.
 
-- **A row (`AppSetting`), not an env var**, via `defineDynamic` on `session.started`.
+- **`AGENT_MODEL` wins when set.** Then Settings → General. Then the compiled default.
   Open conversations keep their model — prompt caches are per model.
+- **Stored reasoning models do not run.** `spacexai/grok-4.20-reasoning` and other
+  `reasoning` / `multi-agent` ids fall back to the default unless `AGENT_MODEL` is set.
 - **`lib/model.ts` always sends `modelContextWindowTokens`**; eve never inherits it.
 - **A failed read logs and keeps the compiled fallback.** Never throws.
-- **The chooser offers only `tool-use` models** (`ModelCatalogService`).
+- **The chooser offers only non-reasoning `tool-use` models** (`ModelCatalogService`).
 - **Not a frontier model, deliberately** — refusing wrong answers is enforced by the
   tools and evidence model, not model strength.
+
+## Contact enrichment is on demand
+
+Automatic identify / recheck / meeting-prep is off unless
+`AUTO_CONTACT_ENRICHMENT=1`. Mailbox sync, form filing, contact create, sign-in
+backfill, calendar meeting-prep, and `schedule_recheck` do not start a model
+session on their own.
+
+A leftover unrequested identify row is closed as skipped on the next dispatch
+tick. It does not start a session.
+
+**On demand:**
+
+1. Open a contact and click **Re-enrich**.
+2. Call the agent with a bridge secret:
+
+```sh
+curl -sS -X POST "$AGENT_URL/internal/crm/enrich-contact" \
+  -H "authorization: Bearer $AGENT_BRIDGE_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"contactId":"CONTACT_ID"}'
+```
+
+3. Or from this repo:
+
+```sh
+bun run --filter=agent enrich -- --contact CONTACT_ID
+```
+
+One request accepts at most 10 ids. The same contact is not queued again for
+two minutes. Dispatch starts at most one identify / recheck / meeting-prep
+session at a time.
 
 ## Pictures are copied, never linked
 
