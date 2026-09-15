@@ -36,7 +36,7 @@ export async function selectedModel(
 	try {
 		return modelForLane(
 			purpose,
-			DEFAULT_ENRICHMENT_MODEL,
+			{ ...DEFAULT_ENRICHMENT_MODEL, isDefault: true },
 			await readAgentModel(db),
 		);
 	} catch (error) {
