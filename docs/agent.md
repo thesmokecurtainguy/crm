@@ -11,8 +11,13 @@ are in `docs/setup.md`.
 
 ## Two models
 
-Contact enrichment and the CRM assistant use different models. They do not
-share a setting. Enrichment never starts the assistant.
+Contact enrichment and the CRM assistant are two lanes. They do not share a
+model, a setting, or an invoke path. Enrichment never starts the assistant.
+
+| Lane | Id | Invoke | Default model |
+| --- | --- | --- | --- |
+| Enrichment | `contact-enrichment` | `POST /internal/crm/enrich-contact` or **Re-enrich** | `spacexai/grok-4.1-fast-non-reasoning` |
+| Assistant | `crm-assistant` | Agent chat / `POST /internal/crm/builder-dispatch` | `spacexai/grok-4.20-non-reasoning` |
 
 - **Enrichment** (`identify` / `recheck` / `meeting-prep`) uses
   `spacexai/grok-4.1-fast-non-reasoning` (`DEFAULT_ENRICHMENT_MODEL`).

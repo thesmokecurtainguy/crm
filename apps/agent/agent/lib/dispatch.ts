@@ -6,6 +6,7 @@ import {
 } from "@crm/db/agent-enrichment";
 import { fieldBackfillPayload } from "@crm/validation/field-backfill";
 import { z } from "zod";
+import { AGENT } from "./agent-config";
 import { APP_AUTH, type AppAuth } from "./app-auth";
 import { brandOutcome, runBrand } from "./brand";
 import { queueEventAgentRuns } from "./custom-agent-dispatch";
@@ -280,7 +281,9 @@ export function taskAuth(task: LeasedTask, base: AppAuth = APP_AUTH): AppAuth {
 			taskKind: task.kind,
 			reason: task.reason,
 			budget: String(task.budget),
-			...(isContactEnrichmentKind(task.kind) ? { purpose: "enrichment" } : {}),
+			...(isContactEnrichmentKind(task.kind)
+				? { purpose: AGENT.lanes.enrichment.purpose }
+				: {}),
 			...records,
 		},
 	};
