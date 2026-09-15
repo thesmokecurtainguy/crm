@@ -18,6 +18,7 @@ import {
 	updateWorkspaceInput,
 	workspaceMemberOutput,
 	workspaceOutput,
+	workspaceProfileOutput,
 } from "./workspace.contracts";
 import { WorkspaceService } from "./workspace.service";
 
@@ -58,6 +59,14 @@ export class WorkspaceRouter {
 		@Input() input: z.infer<typeof updateWorkspaceInput>,
 	) {
 		return this.workspace.update(ctx.user.id, input);
+	}
+
+	@Mutation({
+		output: workspaceProfileOutput,
+		meta: restMeta("POST", "/workspace/profile", ["Workspace"]),
+	})
+	async profile(@Ctx() ctx: AuthedTrpcContext) {
+		return this.workspace.profile(ctx.user.id);
 	}
 
 	@Mutation({

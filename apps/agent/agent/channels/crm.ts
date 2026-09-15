@@ -4,6 +4,7 @@ import { MAX_ATTEMPTS } from "@crm/db/agent-tasks";
 import { schemas } from "@crm/validation";
 import { enrichContactRequest } from "@crm/validation/enrichment-request";
 import { eveTurnFailure } from "@crm/validation/eve-stream";
+import { quoteCheckpointRequest } from "@crm/validation/quote-checkpoint-request";
 import { defineChannel, GET, POST } from "eve/channels";
 import { z } from "zod";
 import { persistBuilderInputRequest } from "../lib/builder-input";
@@ -29,7 +30,11 @@ import {
 } from "../lib/dispatch";
 import { DISPATCH } from "../lib/dispatch-config";
 import { settle } from "../lib/enrichment";
-import { queueRequestedIdentify } from "../lib/enrichment-gate";
+import {
+	queueRequestedIdentify,
+	queueRequestedQuoteCheckpoint,
+	queueRequestedWorkspaceProfile,
+} from "../lib/enrichment-gate";
 import { finishRun, runResultOf } from "../lib/run-runtime";
 import { attribute } from "../lib/session-purpose";
 import { createSlackChannel } from "../lib/slack-membership";
@@ -271,6 +276,66 @@ export default defineChannel({
 					missing,
 					recent,
 				});
+			},
+		),
+
+		POST(
+			"/internal/crm/profile-workspace",
+			async (request, { send, waitUntil }) => {
+				if (!authorised(request)) {
+					return new Response("Unauthorized", { status: 401 });
+				}
+
+				const outcome = await queueRequestedWorkspaceProfile(
+					"An operator asked to write the workspace profile",
+				);
+
+				if (outcome === "queued") {
+					waitUntil(
+						drainAll((task) =>
+							send(brief(task), {
+								auth: taskAuth(task),
+								continuationToken: taskToken(task.id),
+							}),
+						),
+					);
+				}
+
+				return Response.json({ outcome });
+			},
+		),
+
+		POST(
+			"/internal/crm/quote-checkpoint",
+			async (request, { send, waitUntil }) => {
+				if (!authorised(request)) {
+					return new Response("Unauthorized", { status: 401 });
+				}
+
+				const parsed = quoteCheckpointRequest.safeParse(
+					await request.json().catch(() => null),
+				);
+				if (!parsed.success) {
+					return Response.json({ error: "Send a deal id." }, { status: 400 });
+				}
+
+				const outcome = await queueRequestedQuoteCheckpoint(
+					parsed.data.dealId,
+					"An operator asked to check this quote",
+				);
+
+				if (outcome === "queued") {
+					waitUntil(
+						drainAll((task) =>
+							send(brief(task), {
+								auth: taskAuth(task),
+								continuationToken: taskToken(task.id),
+							}),
+						),
+					);
+				}
+
+				return Response.json({ outcome, dealId: parsed.data.dealId });
 			},
 		),
 

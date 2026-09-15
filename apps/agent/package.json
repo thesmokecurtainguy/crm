@@ -11,6 +11,8 @@
 		"dev:headless": "eve dev --no-ui",
 		"dispatch": "curl -fsS -X POST \"${AGENT_URL:-http://127.0.0.1:2000}/eve/v1/dev/schedules/dispatch\"",
 		"enrich": "bun scripts/enrich-contact.ts",
+		"profile-workspace": "bun scripts/profile-workspace.ts",
+		"quote-check": "bun scripts/quote-checkpoint.ts",
 		"build": "eve build",
 		"start": "bun scripts/start.ts",
 		"check-types": "tsc --noEmit",

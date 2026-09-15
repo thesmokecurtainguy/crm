@@ -120,7 +120,7 @@ single place that knows what is set.
 | `AGENT_MODEL_CONTEXT_WINDOW` | Context window for `AGENT_MODEL` when the catalog is not read |
 | `AGENT_ENRICHMENT_MODEL` | Contact-enrichment model. Default is `spacexai/grok-4.1-fast-non-reasoning` |
 | `AGENT_ENRICHMENT_MODEL_CONTEXT_WINDOW` | Context window for `AGENT_ENRICHMENT_MODEL` |
-| `AUTO_CONTACT_ENRICHMENT` | `"1"` or `"true"` turns on auto identify / recheck / meeting-prep. Off by default |
+| `AUTO_CONTACT_ENRICHMENT` | `"1"` or `"true"` turns on auto identify / recheck / meeting-prep only. Off by default. Company-profile, workspace-profile, quote-checkpoint, field-backfill, and custom event agents stay manual |
 
 `BLOB_READ_WRITE_TOKEN` is also in `env.validation.ts` and `apps/api/turbo.json`
 because the API and the seed write pictures too. The Next.js app is deliberately

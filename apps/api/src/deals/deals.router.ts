@@ -30,6 +30,7 @@ import {
 	dealListInput,
 	dealListOutput,
 	dealMutateOutput,
+	dealQuoteCheckpointOutput,
 	dealSetStageOutput,
 	dealUpdateArgs,
 	setStageInput,
@@ -57,6 +58,15 @@ export class DealsRouter {
 	})
 	async byId(@Input("id") id: string) {
 		return this.deals.byId(id);
+	}
+
+	@Mutation({
+		input: dealIdInput,
+		output: dealQuoteCheckpointOutput,
+		meta: restMeta("POST", "/deals/{id}/quote-checkpoint", ["Deals"]),
+	})
+	async quoteCheckpoint(@Input("id") id: string) {
+		return this.deals.quoteCheckpoint(id);
 	}
 
 	@Mutation({

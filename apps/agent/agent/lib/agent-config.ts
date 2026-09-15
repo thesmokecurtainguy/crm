@@ -21,6 +21,16 @@ export const AGENT = {
 			purpose: "builder",
 			endpoint: "/internal/crm/builder-dispatch",
 		},
+		workspace: {
+			id: "workspace-profile",
+			purpose: "research",
+			endpoint: "/internal/crm/profile-workspace",
+		},
+		quote: {
+			id: "quote-checkpoint",
+			purpose: "research",
+			endpoint: "/internal/crm/quote-checkpoint",
+		},
 	},
 } as const;
 

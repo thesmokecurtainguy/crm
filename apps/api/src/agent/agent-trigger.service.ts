@@ -67,14 +67,6 @@ export class AgentTriggerService {
 			priority: PRIORITY.brand,
 			budget: 2,
 		});
-
-		await this.enqueue({
-			companyId,
-			kind: "company-profile",
-			reason,
-			priority: PRIORITY.companyProfile,
-			budget: 4,
-		});
 	}
 
 	async companyRequested(companyId: string, reason: string): Promise<boolean> {
@@ -96,6 +88,7 @@ export class AgentTriggerService {
 				reason,
 				priority: PRIORITY.requested,
 				budget: 8,
+				payload: REQUESTED_ENRICHMENT_PAYLOAD,
 			},
 			true,
 		);
@@ -103,13 +96,52 @@ export class AgentTriggerService {
 		return brand || profile;
 	}
 
-	async workspaceChanged(website: string, reason: string): Promise<void> {
-		await this.enqueue({
-			kind: "workspace-profile",
-			reason: `${reason} (${website})`,
-			priority: PRIORITY.workspace,
-			budget: 4,
+	async workspaceRequested(website: string, reason: string): Promise<boolean> {
+		return this.enqueue(
+			{
+				kind: "workspace-profile",
+				reason: `${reason} (${website})`,
+				priority: PRIORITY.requested,
+				budget: ENRICHMENT.profile.budget,
+				payload: REQUESTED_ENRICHMENT_PAYLOAD,
+			},
+			true,
+		);
+	}
+
+	async quoteRequested(dealId: string, reason: string): Promise<boolean> {
+		const deal = await this.db.deal.findUnique({
+			where: { id: dealId },
+			select: {
+				id: true,
+				name: true,
+				channel: true,
+				expectedCloseDate: true,
+				companyId: true,
+				projectId: true,
+				project: { select: { name: true } },
+				company: { select: { name: true } },
+			},
 		});
+		if (!deal) return false;
+
+		return this.enqueue(
+			{
+				dealId: deal.id,
+				companyId: deal.companyId,
+				kind: "quote-checkpoint",
+				reason,
+				priority: PRIORITY.requested,
+				budget: ENRICHMENT.quote.budget,
+				payload: {
+					...REQUESTED_ENRICHMENT_PAYLOAD,
+					channel: deal.channel,
+					projectId: deal.projectId,
+					dealName: deal.project?.name ?? deal.name,
+				},
+			},
+			true,
+		);
 	}
 
 	async contactCreated(
@@ -206,25 +238,7 @@ export class AgentTriggerService {
 			emit: (input: CrmEventInput) => Promise<void>,
 		) => Promise<Result>,
 	): Promise<Result> {
-		const queued: CrmEventInput[] = [];
-		const result = await this.db.$transaction((tx) =>
-			work(tx, async (input) => {
-				await this.createEventTask(tx, input);
-				queued.push(input);
-			}),
-		);
-
-		for (const input of queued) {
-			this.logger.log({
-				message: "Agent event queued",
-				type: input.type,
-				recordKind: input.record.kind,
-				recordId: input.record.id,
-			});
-		}
-		if (queued.length > 0) this.poke();
-
-		return result;
+		return this.db.$transaction((tx) => work(tx, async () => undefined));
 	}
 
 	async fieldBackfillRecords(
@@ -267,7 +281,11 @@ export class AgentTriggerService {
 								priority: PRIORITY.fieldBackfill,
 								budget: 8,
 								dueAt: new Date(),
-								payload: { entity, keys } satisfies Prisma.InputJsonValue,
+								payload: {
+									entity,
+									keys,
+									...REQUESTED_ENRICHMENT_PAYLOAD,
+								} satisfies Prisma.InputJsonValue,
 							},
 						});
 						return "queued" as const;
@@ -284,6 +302,7 @@ export class AgentTriggerService {
 							payload: {
 								entity,
 								keys: nextKeys,
+								...REQUESTED_ENRICHMENT_PAYLOAD,
 							} satisfies Prisma.InputJsonValue,
 						},
 					});
@@ -458,6 +477,7 @@ export class AgentTriggerService {
 		task: {
 			contactId?: string;
 			companyId?: string;
+			dealId?: string;
 			kind: string;
 			reason: string;
 			priority: number;
@@ -472,7 +492,7 @@ export class AgentTriggerService {
 			const write = async (tx: Prisma.TransactionClient) => {
 				await lockIdempotencyKey(
 					tx,
-					`agent-task:${task.kind}:${task.contactId ?? ""}:${task.companyId ?? ""}:${task.subject?.value ?? ""}`,
+					`agent-task:${task.kind}:${task.contactId ?? ""}:${task.companyId ?? ""}:${task.dealId ?? ""}:${task.subject?.value ?? ""}`,
 				);
 
 				if (
@@ -500,6 +520,7 @@ export class AgentTriggerService {
 						finishedAt: null,
 						contactId: task.contactId ?? undefined,
 						companyId: task.companyId ?? undefined,
+						dealId: task.dealId ?? undefined,
 						payload: task.subject
 							? { path: task.subject.path, equals: task.subject.value }
 							: undefined,
@@ -530,6 +551,7 @@ export class AgentTriggerService {
 					data: {
 						contactId: task.contactId ?? null,
 						companyId: task.companyId ?? null,
+						dealId: task.dealId ?? null,
 						kind: task.kind,
 						reason: task.reason,
 						priority: task.priority,
@@ -551,6 +573,7 @@ export class AgentTriggerService {
 				kind: task.kind,
 				contactId: task.contactId,
 				companyId: task.companyId,
+				dealId: task.dealId,
 			});
 
 			if (!client) this.poke();
@@ -564,33 +587,6 @@ export class AgentTriggerService {
 			if (required) throw error;
 			return false;
 		}
-	}
-
-	private async createEventTask(
-		tx: Prisma.TransactionClient,
-		input: CrmEventInput,
-	): Promise<void> {
-		const recordIds = {
-			contactId: input.record.kind === "contact" ? input.record.id : null,
-			companyId: input.record.kind === "company" ? input.record.id : null,
-			dealId: input.record.kind === "deal" ? input.record.id : null,
-		};
-		await tx.agentTask.create({
-			data: {
-				...recordIds,
-				kind: "agent-event",
-				reason: input.type,
-				payload: {
-					type: input.type,
-					record: input.record,
-					occurredAt: input.occurredAt.toISOString(),
-					data: input.data,
-				},
-				priority: PRIORITY.event,
-				budget: 1,
-				dueAt: new Date(),
-			},
-		});
 	}
 
 	canReachAgent(): boolean {

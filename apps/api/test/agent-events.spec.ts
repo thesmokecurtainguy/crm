@@ -73,7 +73,7 @@ afterAll(async () => {
 });
 
 describe("CRM agent events", () => {
-	it("routes every event to its catalog record kind", async () => {
+	it("does not queue an agent-event for a contact write", async () => {
 		const occurredAt = new Date("2026-08-10T09:00:00.000Z");
 		await service.withCrmEvents(async (_tx, emit) => {
 			await emit({
@@ -85,29 +85,13 @@ describe("CRM agent events", () => {
 		});
 
 		expect(
-			await db.agentTask.findFirstOrThrow({
+			await db.agentTask.count({
 				where: { contactId, kind: "agent-event" },
-				select: {
-					contactId: true,
-					companyId: true,
-					dealId: true,
-					payload: true,
-				},
 			}),
-		).toEqual({
-			contactId,
-			companyId: null,
-			dealId: null,
-			payload: {
-				type: "contact.created",
-				record: { kind: "contact", id: contactId },
-				occurredAt: occurredAt.toISOString(),
-				data: { email: "person@example.test" },
-			},
-		});
+		).toBe(0);
 	});
 
-	it("writes durable created and closed events for the agent worker", async () => {
+	it("does not queue an agent-event for deal writes", async () => {
 		const createdAt = new Date("2026-08-10T10:00:00.000Z");
 		const closedAt = new Date("2026-08-10T11:00:00.000Z");
 
@@ -126,39 +110,11 @@ describe("CRM agent events", () => {
 			});
 		});
 
-		const tasks = await db.agentTask.findMany({
-			where: { dealId, kind: "agent-event" },
-			select: {
-				dealId: true,
-				reason: true,
-				payload: true,
-				finishedAt: true,
-			},
-		});
-
-		expect(tasks).toHaveLength(2);
-		expect(tasks.find((task) => task.reason === "deal.created")).toEqual({
-			dealId,
-			reason: "deal.created",
-			payload: {
-				type: "deal.created",
-				record: { kind: "deal", id: dealId },
-				occurredAt: createdAt.toISOString(),
-				data: { companyId, stage: "DEMO_BOOKED" },
-			},
-			finishedAt: null,
-		});
-		expect(tasks.find((task) => task.reason === "deal.closed")).toEqual({
-			dealId,
-			reason: "deal.closed",
-			payload: {
-				type: "deal.closed",
-				record: { kind: "deal", id: dealId },
-				occurredAt: closedAt.toISOString(),
-				data: { companyId, from: "NEGOTIATION", to: "CLOSED_WON" },
-			},
-			finishedAt: null,
-		});
+		expect(
+			await db.agentTask.count({
+				where: { dealId, kind: "agent-event" },
+			}),
+		).toBe(0);
 	});
 
 	it("queues one Slack join for a channel that is renamed", async () => {
@@ -212,7 +168,7 @@ describe("CRM agent events", () => {
 		).toBe(0);
 	});
 
-	it("emits each real deal lifecycle transition exactly once", async () => {
+	it("keeps deal writes without an agent-event queue", async () => {
 		const deal = await deals.create({
 			name: "Event-driven deal",
 			companyId: persistedCompanyId,
@@ -233,21 +189,11 @@ describe("CRM agent events", () => {
 		]);
 		await deals.setStage({ id: deal.id, stage: "QUALIFIED_TO_BUY" }, ownerId);
 
-		const reasons = (
-			await db.agentTask.findMany({
+		expect(
+			await db.agentTask.count({
 				where: { dealId: deal.id, kind: "agent-event" },
-				select: { reason: true },
-			})
-		)
-			.map((task) => task.reason)
-			.sort();
-		expect(reasons).toEqual([
-			"deal.closed",
-			"deal.created",
-			"deal.opened",
-			"deal.stage.changed",
-			"deal.stage.changed",
-		]);
+			}),
+		).toBe(0);
 		expect(
 			await db.activity.count({
 				where: { dealId: deal.id, type: "STAGE_CHANGE" },

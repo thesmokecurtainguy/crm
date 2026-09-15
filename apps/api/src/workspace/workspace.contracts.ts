@@ -29,6 +29,10 @@ export const setMemberRoleInput = z.object({
 export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceInput>;
 export type SetMemberRoleInput = z.infer<typeof setMemberRoleInput>;
 
+export const workspaceProfileOutput = z.object({
+	queued: z.boolean(),
+});
+
 export const workspaceOutput = z.object({
 	id: z.string(),
 	slug: z.string(),

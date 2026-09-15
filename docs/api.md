@@ -61,9 +61,9 @@ here, what do we sell.
 - **The name starts as `DEFAULT_WORKSPACE_NAME` (`CRM`), a placeholder not an
   answer.** The header renders `<name> CRM`, so `workspaceLabel` tests the name rather
   than comparing to the default.
-- **The website queues the agent's `workspace-profile` task** and goes through
-  `normalizeDomain`, rejecting null. Stored canonical, so re-saving uncanonically
-  counts as a change and re-queues research.
+- **The website is stored canonical** through `normalizeDomain`, rejecting null.
+  A website save does not queue `workspace-profile`. John starts that pass from
+  Settings → Workspace **Write profile**.
 
 ### Gates in `proxy.ts`
 

@@ -2,7 +2,6 @@ import { onSignedIn } from "@crm/auth";
 import { type Db, EnrichmentStatus, type Prisma } from "@crm/db";
 import { autoContactEnrichmentEnabled } from "@crm/db/agent-enrichment";
 import { PRIORITY } from "@crm/db/agent-tasks";
-import { readWorkspaceIdentity } from "@crm/db/workspace";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import type { Cache } from "cache-manager";
@@ -43,8 +42,6 @@ const RECHECK_PHOTO_AFTER_MS = 30 * 24 * 60 * 60_000;
 
 const RECHECK_BRAND_AFTER_MS = 30 * 24 * 60 * 60_000;
 
-const RECHECK_WORKSPACE_AFTER_MS = 7 * 24 * 60 * 60_000;
-
 @Injectable()
 export class BackfillService implements OnModuleInit {
 	private readonly logger = new Logger(BackfillService.name);
@@ -69,8 +66,6 @@ export class BackfillService implements OnModuleInit {
 
 		void (async () => {
 			try {
-				await this.sweepWorkspace();
-
 				const companies = await this.runCompanies(false);
 				const contacts = await this.runContacts();
 
@@ -92,27 +87,6 @@ export class BackfillService implements OnModuleInit {
 		})();
 
 		return { started: true };
-	}
-
-	private async sweepWorkspace(): Promise<void> {
-		const us = await readWorkspaceIdentity(this.db);
-
-		if (!us?.website || us.profile) return;
-
-		const attempted = await this.db.agentTask.findFirst({
-			where: {
-				kind: "workspace-profile",
-				finishedAt: { gte: new Date(Date.now() - RECHECK_WORKSPACE_AFTER_MS) },
-			},
-			select: { id: true },
-		});
-
-		if (attempted) return;
-
-		await this.agent.workspaceChanged(
-			us.website,
-			"We still have no profile of the company using this CRM",
-		);
 	}
 
 	async run(scope: BackfillScope): Promise<BackfillResult> {
@@ -162,15 +136,9 @@ export class BackfillService implements OnModuleInit {
 			priority: PRIORITY.brand,
 		});
 
-		const profile = await this.agent.backfill({
-			kind: "company-profile",
-			reason: "Backfill — this company was never successfully looked up",
-			companyIds: rows.map((row) => row.id),
-		});
-
 		const queued = {
-			queued: brand.queued + profile.queued,
-			alreadyQueued: brand.alreadyQueued + profile.alreadyQueued,
+			queued: brand.queued,
+			alreadyQueued: brand.alreadyQueued,
 		};
 
 		const iconsResolving = dealsOnly ? 0 : await this.sweepFavicons();

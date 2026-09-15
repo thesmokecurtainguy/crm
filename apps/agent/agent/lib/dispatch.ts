@@ -35,6 +35,8 @@ export const RESEARCH_BATCH = DISPATCH.research.batch;
 export const RESEARCH_LEASE_MS = DISPATCH.research.leaseMs;
 
 export async function runVisibleLane(signal?: AbortSignal): Promise<number> {
+	await skipUnrequestedContactEnrichment();
+
 	let handled = 0;
 
 	while (handled < VISIBLE_BATCH) {
@@ -158,7 +160,10 @@ export async function runResearchLane(
 	);
 	const other = await claimDue(
 		RESEARCH_BATCH,
-		{ except: [...DIRECT_KINDS, ...CONTACT_ENRICHMENT_KINDS] },
+		{
+			except: [...DIRECT_KINDS, ...CONTACT_ENRICHMENT_KINDS],
+			requestedOnly: true,
+		},
 		RESEARCH_LEASE_MS,
 	);
 	const tasks = [...enrichment, ...other];

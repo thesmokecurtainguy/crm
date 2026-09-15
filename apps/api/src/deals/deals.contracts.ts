@@ -265,6 +265,11 @@ export const dealCreateOutput = z.object({
 
 export type DealCreated = z.infer<typeof dealCreateOutput>;
 
+export const dealQuoteCheckpointOutput = z.object({
+	id: z.string(),
+	queued: z.boolean(),
+});
+
 export const dealMutateOutput = z.object({
 	id: z.string(),
 	name: z.string(),

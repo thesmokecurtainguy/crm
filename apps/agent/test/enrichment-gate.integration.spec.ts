@@ -95,7 +95,7 @@ describe("contact enrichment dispatch gate", () => {
 		expect(requestedRow?.finishedAt).toBeNull();
 	});
 
-	it("still claims other research kinds", async () => {
+	it("does not claim an unrequested workspace-profile", async () => {
 		const task = await db.agentTask.create({
 			data: {
 				kind: "workspace-profile",
@@ -112,7 +112,7 @@ describe("contact enrichment dispatch gate", () => {
 			requestedOnly: true,
 		});
 
-		expect(claimed.map((row) => row.id)).toContain(task.id);
+		expect(claimed.map((row) => row.id)).not.toContain(task.id);
 
 		await db.agentTask.delete({ where: { id: task.id } });
 	});
