@@ -9,18 +9,100 @@ are in `docs/setup.md`.
 `apps/agent/node_modules/eve/docs/README.md` matches the installed version;
 `.agents/skills/eve` is the skill. Guessing typechecks, builds, then misbehaves.
 
-## Model
+## Two models
 
-Default `zai/glm-5.2-fast`; `DEFAULT_AGENT_MODEL` in `@crm/db/settings` because the
-agent and the API both need it.
+Contact enrichment and the CRM assistant are two lanes. They do not share a
+model, a setting, or an invoke path. Enrichment never starts the assistant.
 
-- **A row (`AppSetting`), not an env var**, via `defineDynamic` on `session.started`.
-  Open conversations keep their model — prompt caches are per model.
-- **`lib/model.ts` always sends `modelContextWindowTokens`**; eve never inherits it.
+| Lane | Id | Invoke | Default model |
+| --- | --- | --- | --- |
+| Enrichment | `contact-enrichment` | `POST /internal/crm/enrich-contact` or **Re-enrich** | `spacexai/grok-4.1-fast-non-reasoning` |
+| Assistant | `crm-assistant` | Agent chat / `POST /internal/crm/builder-dispatch` | `spacexai/grok-4.20-non-reasoning` |
+
+- **Enrichment** (`identify` / `recheck` / `meeting-prep`) uses
+  `spacexai/grok-4.1-fast-non-reasoning` (`DEFAULT_ENRICHMENT_MODEL`).
+  Override with `AGENT_ENRICHMENT_MODEL`. Settings and `AGENT_MODEL` do not
+  apply. Reasoning ids fall back to the cheap default.
+- **CRM assistant** (chat, drafts, deal help, company-profile) uses
+  `spacexai/grok-4.20-non-reasoning` (`DEFAULT_AGENT_MODEL`).
+  `AGENT_MODEL` wins when set. Then Settings → General. Then the compiled
+  default. Open conversations keep their model — prompt caches are per model.
+- **Stored reasoning models do not run** on the assistant unless `AGENT_MODEL`
+  is set. `spacexai/grok-4.20-reasoning` and other `reasoning` / `multi-agent`
+  ids fall back to `DEFAULT_AGENT_MODEL`.
+- **`lib/model.ts` picks the model from session purpose.** Enrichment sessions
+  set `purpose=enrichment`. The assistant never inherits the enrichment model.
 - **A failed read logs and keeps the compiled fallback.** Never throws.
-- **The chooser offers only `tool-use` models** (`ModelCatalogService`).
+- **The chooser offers only non-reasoning `tool-use` models** (`ModelCatalogService`).
 - **Not a frontier model, deliberately** — refusing wrong answers is enforced by the
   tools and evidence model, not model strength.
+
+## Agent work is on demand
+
+A model session starts only when John starts it. No timer, create, save,
+sign-in, or CRM event starts a research or custom-agent run.
+
+`AUTO_CONTACT_ENRICHMENT=1` is the one exception, and it only turns identify /
+recheck / meeting-prep back on. Leave it unset.
+
+A leftover unrequested research or `agent-event` row is closed as skipped on
+the next dispatch tick. It does not start a session.
+
+### Disabled auto paths
+
+| Path | What used to fire it | Manual invoke |
+| --- | --- | --- |
+| `identify` / `recheck` / `meeting-prep` | Contact create, mailbox, tracking, sign-in backfill, calendar, `schedule_recheck` | Contact **Re-enrich**, `POST /internal/crm/enrich-contact`, `bun run --filter=agent enrich -- --contact ID` |
+| `company-profile` | Company create, domain change, company backfill | Company **Re-enrich** / **Research** |
+| `workspace-profile` | Website save, sign-in workspace sweep | Settings → Workspace **Write profile**, `POST /internal/crm/profile-workspace`, `bun run --filter=agent profile-workspace` |
+| `quote-checkpoint` | Cron at minute 7 | Deal **Check quote**, `POST /internal/crm/quote-checkpoint`, `bun run --filter=agent quote-check -- --deal ID` |
+| `field-backfill` | New field, brief change, new record | Field editor **Fill the rest** |
+| `agent-event` (custom event agents) | Contact / company / deal writes | Agent chat, or the custom agent **Run now** |
+| Scheduled custom agents | Cron `queueDueAgentRuns` | Custom agent **Run now** |
+
+Brand, portrait, Slack join, and Slack people-match are not model sessions.
+They still queue from their operator or vendor paths. They do not spend on
+Grok.
+
+### Contact enrich
+
+1. Open a contact and click **Re-enrich**.
+2. Call the agent with a bridge secret:
+
+```sh
+curl -sS -X POST "$AGENT_URL/internal/crm/enrich-contact" \
+  -H "authorization: Bearer $AGENT_BRIDGE_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"contactId":"CONTACT_ID"}'
+```
+
+3. Or from this repo:
+
+```sh
+bun run --filter=agent enrich -- --contact CONTACT_ID
+```
+
+One request accepts at most 10 ids. The same contact is not queued again for
+two minutes. Dispatch starts at most one identify / recheck / meeting-prep
+session at a time. The cheap enrichment session writes contact fields only.
+It cannot draft, plan, or start the CRM assistant. A Chief of Staff or other
+assistant must not call this endpoint on its own.
+
+### Workspace profile
+
+```sh
+curl -sS -X POST "$AGENT_URL/internal/crm/profile-workspace" \
+  -H "authorization: Bearer $AGENT_BRIDGE_SECRET"
+```
+
+### Quote checkpoint
+
+```sh
+curl -sS -X POST "$AGENT_URL/internal/crm/quote-checkpoint" \
+  -H "authorization: Bearer $AGENT_BRIDGE_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"dealId":"DEAL_ID"}'
+```
 
 ## Pictures are copied, never linked
 
@@ -277,8 +359,9 @@ preamble; `lib/workspace.ts` is the only renderer.
   `WorkspaceProfile` keyed on `WORKSPACE_ID`.
 
 The pass is a `workspace-profile` task using `web_fetch` (no credits), filed only via
-`write_workspace_profile`, queued by `WorkspaceService.update` on a website change. **A
-finished attempt stands the sweep down for seven days.**
+`write_workspace_profile`. John starts it from Settings → Workspace **Write
+profile**, or `POST /internal/crm/profile-workspace`. A website save does not
+queue it.
 
 ## What may be read, and what may leave
 
@@ -328,8 +411,8 @@ delegation paths for custom agents.
   for replay safety.
 - **CRM events are shared domain contracts.** `@crm/db/crm-events` owns the event
   vocabulary, record kind, and builder-facing description used by the API, builder,
-  and worker. API writes enqueue a durable `agent-event` task; the agent worker alone
-  matches live triggers and creates runs. Do not duplicate event lists in prompts or
+  and worker. API writes do not enqueue `agent-event` tasks. John starts a custom
+  agent from chat or **Run now**. Do not duplicate event lists in prompts or
   feature code.
 - **Versions can have multiple triggers.** The manifest stores a `triggers` array and
   each entry becomes its own `AgentTrigger` row. Deployment enables every trigger on

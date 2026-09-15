@@ -1,4 +1,5 @@
 import { db, type Prisma } from "@crm/db";
+import { AUTO_RESEARCH_KINDS } from "@crm/db/agent-enrichment";
 import { MAX_ATTEMPTS, RETIRED_OUTCOME } from "@crm/db/agent-tasks";
 import { DISPATCH } from "./dispatch-config";
 
@@ -28,9 +29,13 @@ const LEASE_MS = DISPATCH.task.leaseMs;
 
 export { DIRECT_KINDS, MAX_ATTEMPTS } from "@crm/db/agent-tasks";
 
+export type ClaimKinds =
+	| { only: readonly string[]; requestedOnly?: boolean }
+	| { except: readonly string[]; requestedOnly?: boolean };
+
 export async function claimDue(
 	limit: number,
-	kinds: { only: readonly string[] } | { except: readonly string[] },
+	kinds: ClaimKinds,
 	leaseMs = LEASE_MS,
 ): Promise<LeasedTask[]> {
 	const now = new Date();
@@ -40,6 +45,8 @@ export async function claimDue(
 	if ("only" in kinds && list.length === 0) return [];
 
 	const onlyMode = "only" in kinds;
+	const requestedOnly = kinds.requestedOnly === true;
+	const gatedKinds = [...AUTO_RESEARCH_KINDS];
 
 	const claimed = await db.$queryRaw<LeasedTask[]>`
 		UPDATE "agentTask" AS t
@@ -56,6 +63,11 @@ export async function claimDue(
 					WHEN ${onlyMode}::boolean THEN t2.kind = ANY(${list}::text[])
 					ELSE t2.kind <> ALL(${list}::text[])
 				END
+				AND (
+					NOT ${requestedOnly}::boolean
+					OR t2.kind <> ALL(${gatedKinds}::text[])
+					OR COALESCE(t2.payload->>'requested', '') = 'true'
+				)
 			ORDER BY t2."priority" DESC, t2."dueAt" ASC
 			LIMIT ${limit}
 			FOR UPDATE SKIP LOCKED

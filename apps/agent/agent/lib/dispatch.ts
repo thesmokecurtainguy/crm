@@ -1,12 +1,19 @@
 import { EnrichmentStatus } from "@crm/db";
+import {
+	autoContactEnrichmentEnabled,
+	CONTACT_ENRICHMENT_KINDS,
+	isContactEnrichmentKind,
+} from "@crm/db/agent-enrichment";
 import { fieldBackfillPayload } from "@crm/validation/field-backfill";
 import { z } from "zod";
+import { AGENT } from "./agent-config";
 import { APP_AUTH, type AppAuth } from "./app-auth";
 import { brandOutcome, runBrand } from "./brand";
 import { queueEventAgentRuns } from "./custom-agent-dispatch";
 import { settledWithin } from "./deadline";
 import { DISPATCH } from "./dispatch-config";
 import { markRunning, settle } from "./enrichment";
+import { skipUnrequestedContactEnrichment } from "./enrichment-gate";
 import { collapsing, runLimited } from "./pool";
 import { runPortrait } from "./portrait";
 import { runSlackChannelJoin } from "./slack-join-task";
@@ -28,6 +35,8 @@ export const RESEARCH_BATCH = DISPATCH.research.batch;
 export const RESEARCH_LEASE_MS = DISPATCH.research.leaseMs;
 
 export async function runVisibleLane(signal?: AbortSignal): Promise<number> {
+	await skipUnrequestedContactEnrichment();
+
 	let handled = 0;
 
 	while (handled < VISIBLE_BATCH) {
@@ -138,17 +147,38 @@ export async function runResearchLane(
 ): Promise<number> {
 	if (signal?.aborted) return 0;
 
-	const tasks = await claimDue(
-		RESEARCH_BATCH,
-		{ except: DIRECT_KINDS },
+	await skipUnrequestedContactEnrichment();
+
+	const auto = autoContactEnrichmentEnabled();
+	const enrichment = await claimDue(
+		DISPATCH.research.enrichmentBatch,
+		{
+			only: CONTACT_ENRICHMENT_KINDS,
+			requestedOnly: !auto,
+		},
 		RESEARCH_LEASE_MS,
 	);
+	const other = await claimDue(
+		RESEARCH_BATCH,
+		{
+			except: [...DIRECT_KINDS, ...CONTACT_ENRICHMENT_KINDS],
+			requestedOnly: true,
+		},
+		RESEARCH_LEASE_MS,
+	);
+	const tasks = [...enrichment, ...other];
 	if (tasks.length === 0) return 0;
 
 	let started = 0;
 
+	for (const task of enrichment) {
+		if (signal?.aborted) break;
+		started += 1;
+		await beginResearch(task, start);
+	}
+
 	await Promise.all(
-		tasks.map(async (task) => {
+		other.map(async (task) => {
 			if (signal?.aborted) return;
 			started += 1;
 			await beginResearch(task, start);
@@ -256,6 +286,9 @@ export function taskAuth(task: LeasedTask, base: AppAuth = APP_AUTH): AppAuth {
 			taskKind: task.kind,
 			reason: task.reason,
 			budget: String(task.budget),
+			...(isContactEnrichmentKind(task.kind)
+				? { purpose: AGENT.lanes.enrichment.purpose }
+				: {}),
 			...records,
 		},
 	};

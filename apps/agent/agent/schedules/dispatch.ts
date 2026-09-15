@@ -4,10 +4,8 @@ import { sweepBlankFacts } from "../lib/blank-facts";
 import {
 	pendingAgentRunIds,
 	pendingBuilderSubmissionIds,
-	queueDueAgentRuns,
 } from "../lib/custom-agent-dispatch";
 import { brief, drainAll, taskAuth } from "../lib/dispatch";
-import { queueQuoteCheckpoints } from "../lib/quote-clocks";
 import { reconcileStaleTasks } from "../lib/stale-tasks";
 
 export default defineSchedule({
@@ -18,7 +16,6 @@ export default defineSchedule({
 				sweepBlankFacts(),
 
 				(async () => {
-					if (new Date().getUTCMinutes() === 7) await queueQuoteCheckpoints();
 					await reconcileStaleTasks();
 					await drainAll((task) =>
 						receive(crm, {
@@ -27,7 +24,6 @@ export default defineSchedule({
 							auth: taskAuth(task, appAuth),
 						}),
 					);
-					await queueDueAgentRuns();
 					const [builderIds, runIds] = await Promise.all([
 						pendingBuilderSubmissionIds(),
 						pendingAgentRunIds(),

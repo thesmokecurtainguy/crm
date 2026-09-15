@@ -46,7 +46,11 @@ const gatewayCatalog = z
 	.catch({ data: [] });
 
 function usable(model: GatewayModel): boolean {
-	return model.type === "language" && model.tags.includes("tool-use");
+	return (
+		model.type === "language" &&
+		model.tags.includes("tool-use") &&
+		!model.tags.includes("reasoning")
+	);
 }
 
 function toCatalogModel(model: GatewayModel): CatalogModel {

@@ -1,5 +1,6 @@
 import { defineDynamic, defineInstructions } from "eve/instructions";
 import { z } from "zod";
+import { ENRICHMENT_INSTRUCTIONS } from "../lib/enrichment-instructions";
 import { focusOn, setBudget } from "../lib/focus";
 import { sessionPreamble } from "../lib/preamble";
 import { RESEARCH_INSTRUCTIONS } from "../lib/research-instructions";
@@ -54,8 +55,13 @@ export default defineDynamic({
 
 			focusOn({ ...focus, sessionId: ctx.session.id, taskKind: kind });
 
+			const instructions =
+				purpose === "enrichment"
+					? ENRICHMENT_INSTRUCTIONS
+					: RESEARCH_INSTRUCTIONS;
+
 			return defineInstructions({
-				markdown: `${RESEARCH_INSTRUCTIONS}\n\n${markdown}`,
+				markdown: `${instructions}\n\n${markdown}`,
 			});
 		},
 		"turn.started": (_event, ctx) =>

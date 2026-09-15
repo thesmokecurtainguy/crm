@@ -1,6 +1,7 @@
 import type { Db } from "@crm/db";
 import {
 	DEFAULT_AGENT_MODEL,
+	isExpensiveReasoningModel,
 	maskKey,
 	readAgentModel,
 	readArchiveRetentionDays,
@@ -67,6 +68,12 @@ export class SettingsService {
 		if (!chosen) {
 			throw new BadRequestException(
 				`The AI Gateway does not serve a tool-using model called "${modelId}".`,
+			);
+		}
+
+		if (isExpensiveReasoningModel(chosen.id)) {
+			throw new BadRequestException(
+				`"${chosen.id}" is a reasoning model. Pick a non-reasoning model, or set AGENT_MODEL.`,
 			);
 		}
 

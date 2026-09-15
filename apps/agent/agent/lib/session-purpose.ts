@@ -1,6 +1,11 @@
+import { isContactEnrichmentKind } from "@crm/db/agent-enrichment";
 import { z } from "zod";
 
-export type SessionPurpose = "builder" | "team-agent" | "research";
+export type SessionPurpose =
+	| "builder"
+	| "team-agent"
+	| "research"
+	| "enrichment";
 
 type SessionAttributes = Readonly<Record<string, string | readonly string[]>>;
 
@@ -21,7 +26,17 @@ const attributeText = z.string().trim().min(1).nullable().catch(null);
 
 export function purposeOf(ctx: PurposeContext): SessionPurpose {
 	const purpose = attribute(ctx, "purpose");
-	if (purpose === "builder" || purpose === "team-agent") return purpose;
+	if (
+		purpose === "builder" ||
+		purpose === "team-agent" ||
+		purpose === "enrichment"
+	) {
+		return purpose;
+	}
+
+	const taskKind = attribute(ctx, "taskKind");
+	if (taskKind && isContactEnrichmentKind(taskKind)) return "enrichment";
+
 	return "research";
 }
 
@@ -66,7 +81,16 @@ export function requireTeamAgentAttribute(
 }
 
 export function assertResearchPurpose(ctx: PurposeContext): void {
-	if (purposeOf(ctx) !== "research") {
+	const purpose = purposeOf(ctx);
+	if (purpose !== "research" && purpose !== "enrichment") {
 		throw new Error("This CRM research tool is unavailable for this session.");
+	}
+}
+
+export function assertNotEnrichment(ctx: PurposeContext): void {
+	if (purposeOf(ctx) === "enrichment") {
+		throw new Error(
+			"Contact enrichment only looks up a person and writes contact fields.",
+		);
 	}
 }

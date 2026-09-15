@@ -80,6 +80,39 @@ export function EnrichmentActions({
 	);
 }
 
+export function QuoteCheckpointAction({ dealId }: { dealId: string }) {
+	const trpc = useTRPC();
+
+	const check = useMutation(
+		trpc.deals.quoteCheckpoint.mutationOptions({
+			onSuccess: (result) => {
+				toast.success(
+					result.queued
+						? "Checking this quote."
+						: "Already checking this quote.",
+				);
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			disabled={check.isPending}
+			onClick={() => check.mutate({ id: dealId })}
+		>
+			{check.isPending ? (
+				<Spinner />
+			) : (
+				<Icon icon={Renew} data-icon="inline-start" />
+			)}
+			<span className="hidden sm:inline">Check quote</span>
+		</Button>
+	);
+}
+
 export function ContactEnrichmentAction({ contactId }: { contactId: string }) {
 	const trpc = useTRPC();
 	const cache = useCrmCache();

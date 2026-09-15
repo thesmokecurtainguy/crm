@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { AgentPanel } from "@/components/crm/agent-panel";
 import { InlineCompanyField } from "@/components/crm/company-picker";
 import { contactName } from "@/components/crm/contact-name";
+import { QuoteCheckpointAction } from "@/components/crm/enrichment-actions";
 import { FieldsCog, RecordFields } from "@/components/crm/fields/record-fields";
 import {
 	InlineDateField,
@@ -197,6 +198,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
 			actions={
 				deal ? (
 					<>
+						<QuoteCheckpointAction dealId={deal.id} />
 						<DealStageMenu
 							dealId={deal.id}
 							stage={deal.stage}

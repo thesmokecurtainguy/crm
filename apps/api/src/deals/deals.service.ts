@@ -252,6 +252,24 @@ export class DealsService {
 		};
 	}
 
+	async quoteCheckpoint(id: string): Promise<{ id: string; queued: boolean }> {
+		const deal = await this.db.deal.findUnique({
+			where: { id },
+			select: { id: true },
+		});
+
+		if (!deal) {
+			throw new NotFoundException(`No deal with id ${id}.`);
+		}
+
+		const queued = await this.agent.quoteRequested(
+			id,
+			"A rep asked to check this quote",
+		);
+
+		return { id, queued };
+	}
+
 	async create(input: DealCreateInput) {
 		const stage = input.stage ?? "DEMO_BOOKED";
 		const closed = isClosedStage(stage);

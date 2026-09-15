@@ -47,6 +47,19 @@ export function WorkspaceForm() {
 		null,
 	);
 
+	const profile = useMutation(
+		trpc.workspace.profile.mutationOptions({
+			onSuccess: (result) => {
+				toast.success(
+					result.queued
+						? "Writing the workspace profile."
+						: "Already writing that profile.",
+				);
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
 	const save = useMutation(
 		trpc.workspace.update.mutationOptions({
 			onSuccess: async (saved) => {
@@ -81,6 +94,20 @@ export function WorkspaceForm() {
 				</CardDescription>
 
 				<CardAction>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={
+							!canRename ||
+							profile.isPending ||
+							dirty ||
+							values.website.trim() === ""
+						}
+						onClick={() => profile.mutate()}
+					>
+						{profile.isPending ? <Spinner data-icon="inline-start" /> : null}
+						Write profile
+					</Button>
 					<Button
 						type="submit"
 						form="workspace"

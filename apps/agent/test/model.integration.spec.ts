@@ -31,8 +31,24 @@ beforeAll(async () => {
 	saved = await db.appSetting.findUnique({ where: { id: SETTINGS_ID } });
 });
 
-beforeEach(clear);
-afterEach(clear);
+let envModel: string | undefined;
+
+beforeEach(async () => {
+	envModel = process.env.AGENT_MODEL;
+	delete process.env.AGENT_MODEL;
+	delete process.env.AGENT_MODEL_CONTEXT_WINDOW;
+	await clear();
+});
+
+afterEach(async () => {
+	await clear();
+	if (envModel === undefined) {
+		delete process.env.AGENT_MODEL;
+	} else {
+		process.env.AGENT_MODEL = envModel;
+	}
+	delete process.env.AGENT_MODEL_CONTEXT_WINDOW;
+});
 
 afterAll(async () => {
 	if (saved) await db.appSetting.create({ data: saved });
@@ -46,6 +62,32 @@ describe("the configured model", () => {
 		expect(setting.isDefault).toBe(true);
 
 		expect(await selectedModel()).toBeNull();
+	});
+
+	it("ignores a stored grok reasoning model", async () => {
+		await writeAgentModel(db, {
+			id: "spacexai/grok-4.20-reasoning",
+			contextWindowTokens: 2_000_000,
+		});
+
+		const setting = await readAgentModel(db);
+		expect(setting.id).toBe(DEFAULT_AGENT_MODEL.id);
+		expect(setting.isDefault).toBe(true);
+		expect(await selectedModel()).toBeNull();
+	});
+
+	it("lets AGENT_MODEL override the stored row", async () => {
+		await writeAgentModel(db, {
+			id: "spacexai/grok-4.20-reasoning",
+			contextWindowTokens: 2_000_000,
+		});
+		process.env.AGENT_MODEL = "spacexai/grok-4.1-fast-non-reasoning";
+		process.env.AGENT_MODEL_CONTEXT_WINDOW = "1000000";
+
+		expect(await selectedModel()).toEqual({
+			model: "spacexai/grok-4.1-fast-non-reasoning",
+			modelContextWindowTokens: 1_000_000,
+		});
 	});
 
 	it("returns the chosen model with its own context window", async () => {

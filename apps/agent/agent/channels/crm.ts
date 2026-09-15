@@ -2,7 +2,9 @@ import { timingSafeEqual } from "node:crypto";
 import { EnrichmentStatus, Prisma } from "@crm/db";
 import { MAX_ATTEMPTS } from "@crm/db/agent-tasks";
 import { schemas } from "@crm/validation";
+import { enrichContactRequest } from "@crm/validation/enrichment-request";
 import { eveTurnFailure } from "@crm/validation/eve-stream";
+import { quoteCheckpointRequest } from "@crm/validation/quote-checkpoint-request";
 import { defineChannel, GET, POST } from "eve/channels";
 import { z } from "zod";
 import { persistBuilderInputRequest } from "../lib/builder-input";
@@ -28,6 +30,11 @@ import {
 } from "../lib/dispatch";
 import { DISPATCH } from "../lib/dispatch-config";
 import { settle } from "../lib/enrichment";
+import {
+	queueRequestedIdentify,
+	queueRequestedQuoteCheckpoint,
+	queueRequestedWorkspaceProfile,
+} from "../lib/enrichment-gate";
 import { finishRun, runResultOf } from "../lib/run-runtime";
 import { attribute } from "../lib/session-purpose";
 import { createSlackChannel } from "../lib/slack-membership";
@@ -218,6 +225,119 @@ export default defineChannel({
 				? Response.json({ error: outcome.error }, { status: 422 })
 				: Response.json({ channel: outcome });
 		}),
+
+		POST(
+			"/internal/crm/enrich-contact",
+			async (request, { send, waitUntil }) => {
+				if (!authorised(request)) {
+					return new Response("Unauthorized", { status: 401 });
+				}
+
+				const parsed = enrichContactRequest.safeParse(
+					await request.json().catch(() => null),
+				);
+				if (!parsed.success) {
+					return Response.json(
+						{ error: "Send one contact id, or a short list of contact ids." },
+						{ status: 400 },
+					);
+				}
+
+				const queued: string[] = [];
+				const already: string[] = [];
+				const missing: string[] = [];
+				const recent: string[] = [];
+
+				for (const contactId of parsed.data.contactIds) {
+					const outcome = await queueRequestedIdentify(
+						contactId,
+						"An operator asked for a fresh look",
+					);
+					if (outcome === "queued") queued.push(contactId);
+					if (outcome === "already") already.push(contactId);
+					if (outcome === "missing") missing.push(contactId);
+					if (outcome === "recent") recent.push(contactId);
+				}
+
+				if (queued.length > 0) {
+					waitUntil(
+						drainAll((task) =>
+							send(brief(task), {
+								auth: taskAuth(task),
+								continuationToken: taskToken(task.id),
+							}),
+						),
+					);
+				}
+
+				return Response.json({
+					queued,
+					already,
+					missing,
+					recent,
+				});
+			},
+		),
+
+		POST(
+			"/internal/crm/profile-workspace",
+			async (request, { send, waitUntil }) => {
+				if (!authorised(request)) {
+					return new Response("Unauthorized", { status: 401 });
+				}
+
+				const outcome = await queueRequestedWorkspaceProfile(
+					"An operator asked to write the workspace profile",
+				);
+
+				if (outcome === "queued") {
+					waitUntil(
+						drainAll((task) =>
+							send(brief(task), {
+								auth: taskAuth(task),
+								continuationToken: taskToken(task.id),
+							}),
+						),
+					);
+				}
+
+				return Response.json({ outcome });
+			},
+		),
+
+		POST(
+			"/internal/crm/quote-checkpoint",
+			async (request, { send, waitUntil }) => {
+				if (!authorised(request)) {
+					return new Response("Unauthorized", { status: 401 });
+				}
+
+				const parsed = quoteCheckpointRequest.safeParse(
+					await request.json().catch(() => null),
+				);
+				if (!parsed.success) {
+					return Response.json({ error: "Send a deal id." }, { status: 400 });
+				}
+
+				const outcome = await queueRequestedQuoteCheckpoint(
+					parsed.data.dealId,
+					"An operator asked to check this quote",
+				);
+
+				if (outcome === "queued") {
+					waitUntil(
+						drainAll((task) =>
+							send(brief(task), {
+								auth: taskAuth(task),
+								continuationToken: taskToken(task.id),
+							}),
+						),
+					);
+				}
+
+				return Response.json({ outcome, dealId: parsed.data.dealId });
+			},
+		),
 
 		POST("/internal/crm/verify-key", async (request) => {
 			if (!authorised(request)) {

@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { crmPost } from "../lib/crm-api";
+import { assertNotEnrichment } from "../lib/session-purpose";
 
 export default defineTool({
 	description:
@@ -16,7 +17,8 @@ export default defineTool({
 		projectId: z.string().nullable().default(null),
 		dealId: z.string().nullable().default(null),
 	}),
-	async execute(input) {
+	async execute(input, ctx) {
+		assertNotEnrichment(ctx);
 		return crmPost("/writes/create-event", input);
 	},
 });

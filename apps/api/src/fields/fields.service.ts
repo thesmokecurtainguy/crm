@@ -125,20 +125,6 @@ export class FieldsService {
 			include: WITH_OPTIONS,
 		});
 
-		if (definition.agentFilled) {
-			const ids = await this.missingRecordIds(
-				definition.entity,
-				definition.id,
-				FIELDS_CONFIG.backfill.maxRecordsPerRun,
-			);
-			await this.agent.fieldBackfillRecords(
-				definition.entity,
-				[definition.key],
-				ids,
-				`New field: ${definition.label}`,
-			);
-		}
-
 		return serializeField(definition);
 	}
 
@@ -215,26 +201,6 @@ export class FieldsService {
 				include: WITH_OPTIONS,
 			});
 		});
-
-		const briefChanged =
-			data.agentBrief !== undefined && data.agentBrief !== existing.agentBrief;
-		const turnedOn = data.agentFilled === true && !existing.agentFilled;
-
-		if (definition.agentFilled && (briefChanged || turnedOn)) {
-			const ids = await this.missingRecordIds(
-				definition.entity,
-				definition.id,
-				FIELDS_CONFIG.backfill.maxRecordsPerRun,
-			);
-			await this.agent.fieldBackfillRecords(
-				definition.entity,
-				[definition.key],
-				ids,
-				briefChanged
-					? `Brief changed: ${definition.label}`
-					: `Turned on: ${definition.label}`,
-			);
-		}
 
 		return serializeField(definition);
 	}
@@ -336,25 +302,10 @@ export class FieldsService {
 		return { queued: result.queued > 0 || result.merged > 0 };
 	}
 
-	/** Every agent-filled field is inherently blank on a record that was just created. */
 	async queueBackfillForNewRecord(
-		entity: FieldEntity,
-		recordId: string,
-	): Promise<void> {
-		const definitions = await this.db.fieldDefinition.findMany({
-			where: { entity, archivedAt: null, agentFilled: true },
-			select: { key: true },
-		});
-
-		if (definitions.length === 0) return;
-
-		await this.agent.fieldBackfillRecords(
-			entity,
-			definitions.map((definition) => definition.key),
-			[recordId],
-			"New record",
-		);
-	}
+		_entity: FieldEntity,
+		_recordId: string,
+	): Promise<void> {}
 
 	private async missingRecordIds(
 		entity: FieldEntity,

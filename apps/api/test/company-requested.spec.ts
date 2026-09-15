@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { db } from "@crm/db";
+import { REQUESTED_ENRICHMENT_PAYLOAD } from "@crm/db/agent-enrichment";
 import { AgentTriggerService } from "../src/agent/agent-trigger.service";
 
 const suffix = process.env.TEST_RUN_ID ?? "company-requested-spec";
@@ -42,6 +43,12 @@ describe("asking for a fresh look", () => {
 	it("says what it actually queued", async () => {
 		expect(await agent.companyRequested(companyId, reason)).toBe(true);
 
+		const profile = await db.agentTask.findFirst({
+			where: { companyId, kind: "company-profile", finishedAt: null },
+			select: { payload: true },
+		});
+		expect(profile?.payload).toEqual(REQUESTED_ENRICHMENT_PAYLOAD);
+
 		expect(await agent.companyRequested(companyId, reason)).toBe(false);
 
 		await db.agentTask.updateMany({
@@ -50,5 +57,22 @@ describe("asking for a fresh look", () => {
 		});
 
 		expect(await agent.companyRequested(companyId, reason)).toBe(true);
+	});
+
+	it("does not queue a company-profile when a company is created", async () => {
+		await db.agentTask.deleteMany({ where: { companyId } });
+
+		await agent.companyCreated(companyId, "New company");
+
+		expect(
+			await db.agentTask.count({
+				where: { companyId, kind: "company-profile" },
+			}),
+		).toBe(0);
+		expect(
+			await db.agentTask.count({
+				where: { companyId, kind: "brand", finishedAt: null },
+			}),
+		).toBe(1);
 	});
 });

@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { crmCall } from "../lib/crm-api";
+import { assertNotEnrichment } from "../lib/session-purpose";
 
 export default defineTool({
 	description:
@@ -12,7 +13,8 @@ export default defineTool({
 		role: z.string().trim().min(1).max(80),
 		note: z.string().trim().max(500).nullable().default(null),
 	}),
-	async execute(input) {
+	async execute(input, ctx) {
+		assertNotEnrichment(ctx);
 		return crmCall<{ id: string; created: boolean }>(
 			"/projects/participants",
 			input,

@@ -107,7 +107,7 @@ export class WorkspaceService {
 
 		const before = await this.db.organization.findUnique({
 			where: { id: WORKSPACE_ID },
-			select: { website: true, metadata: true },
+			select: { metadata: true },
 		});
 
 		const website = normalizeDomain(input.website);
@@ -130,16 +130,36 @@ export class WorkspaceService {
 
 		this.logger.log({ message: "Workspace updated", userId });
 
-		if (website !== before?.website) {
-			await this.agent.workspaceChanged(
-				website,
-				before?.website
-					? "The company using this CRM changed its website"
-					: "The company using this CRM said what its website is",
+		return this.get(userId);
+	}
+
+	async profile(userId: string): Promise<{ queued: boolean }> {
+		const role = await workspaceRoleOf(userId);
+
+		if (!canRenameWorkspace(role)) {
+			throw new ForbiddenException(
+				"Only an owner or an admin can write the workspace profile.",
 			);
 		}
 
-		return this.get(userId);
+		const row = await this.db.organization.findUnique({
+			where: { id: WORKSPACE_ID },
+			select: { website: true },
+		});
+
+		const website = row?.website?.trim();
+		if (!website) {
+			throw new BadRequestException(
+				"Add a website first. Then ask for a profile.",
+			);
+		}
+
+		const queued = await this.agent.workspaceRequested(
+			website,
+			"A rep asked to write the workspace profile",
+		);
+
+		return { queued };
 	}
 
 	async members(

@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { crmCall } from "../lib/crm-api";
+import { assertNotEnrichment } from "../lib/session-purpose";
 
 type FillOutcome = {
 	domain: string | null;
@@ -19,7 +20,8 @@ export default defineTool({
 		dryRun: z.boolean().default(false),
 		minEvidence: z.number().int().min(1).max(5).default(2),
 	}),
-	async execute({ companyId, dryRun, minEvidence }) {
+	async execute({ companyId, dryRun, minEvidence }, ctx) {
+		assertNotEnrichment(ctx);
 		return crmCall<FillOutcome>(
 			`/companies/${encodeURIComponent(companyId)}/fill-emails`,
 			{ id: companyId, dryRun, minEvidence },

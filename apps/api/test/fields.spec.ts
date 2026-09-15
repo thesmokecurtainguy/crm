@@ -144,7 +144,7 @@ beforeEach(() => {
 });
 
 describe("field definitions", () => {
-	it("derives a key from the label and queues a backfill", async () => {
+	it("derives a key from the label and does not queue a backfill", async () => {
 		const field = await fields.create({
 			entity: "COMPANY",
 			label: "Spec runs on",
@@ -163,13 +163,7 @@ describe("field definitions", () => {
 			"AWS",
 			"Azure",
 		]);
-		expect(queued).toHaveLength(1);
-		expect(queued[0]).toMatchObject({
-			entity: "COMPANY",
-			keys: ["spec_runs_on"],
-			reason: "New field: Spec runs on",
-		});
-		expect(queued[0]?.ids).toContain(companyId);
+		expect(queued).toHaveLength(0);
 	});
 
 	it("refuses a duplicate key", async () => {

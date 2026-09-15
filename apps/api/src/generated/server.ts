@@ -23,7 +23,7 @@ import { contactListInput, contactListOutput, contactIdInput, contactByIdOutput,
 import { conversationListInput, conversationListOutput, builderListOutput, builderResourceSearchInput, builderResourcesOutput, conversationIdInput, builderConversationDetailOutput, conversationEventsInput, conversationEventsOutput, conversationSaveInput, conversationIdOutput, builderConversationCreateInput, builderConversationSubmitInput, builderQuestionResponseInput, builderResponseRatingInput, builderResponseRatingOutput, conversationShareStatusOutput, conversationShareTokenOutput, sharedConversationInput, sharedConversationOutput } from "../conversations/conversations.contracts";
 import { currencySettingsOutput, setReportingCurrencyInput, setManualRateInput, removeManualRateInput } from "../currency/currency.contracts";
 import { dashboardSummaryInput, dashboardSummaryOutput } from "../dashboard/dashboard.contracts";
-import { dealListInput, dealListOutput, dealIdInput, dealDetailOutput, dealCreateInput, dealCreateOutput, dealUpdateArgs, dealMutateOutput, setStageInput, dealSetStageOutput, dealContactsInput, dealContactOptionsOutput, dealAttachContactInput, dealContactLinkOutput, dealDetachContactInput, dealContactRoleInput, dealContactRoleOutput, dealBulkOwnerInput, dealBulkResultOutput, dealBulkStageInput, dealBulkInput } from "../deals/deals.contracts";
+import { dealListInput, dealListOutput, dealIdInput, dealDetailOutput, dealQuoteCheckpointOutput, dealCreateInput, dealCreateOutput, dealUpdateArgs, dealMutateOutput, setStageInput, dealSetStageOutput, dealContactsInput, dealContactOptionsOutput, dealAttachContactInput, dealContactLinkOutput, dealDetachContactInput, dealContactRoleInput, dealContactRoleOutput, dealBulkOwnerInput, dealBulkResultOutput, dealBulkStageInput, dealBulkInput } from "../deals/deals.contracts";
 import { driveListInput, driveListOutput, driveCreateFolderInput, driveFileOutput, driveLinkFolderInput, driveUploadInput, driveFileIdInput, driveContentsOutput } from "../drive/drive.contracts";
 import { enrichmentQueueInput } from "@crm/validation/enrichment-queue";
 import { fieldListInput, fieldListOutput, fieldByKeyInput, serializedFieldOutput, fieldEntityInput, fieldFiltersOutput, fieldIdInput, fieldCoverageOutput, fieldCreateInput, fieldUpdateArgs, fieldReorderInput, fieldReorderOutput, fieldDeleteOutput, fieldBackfillOutput } from "../fields/fields.contracts";
@@ -37,7 +37,7 @@ import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannel
 import { ssoSignInOptionsOutput, ssoSettingsOutput, ssoProviderListInput, ssoProviderListOutput, registerSsoProviderInput, ssoProviderOutput, deleteSsoProviderInput, deleteSsoProviderOutput } from "../sso/sso.contracts";
 import { templateListInput, templateListOutput, templateCreateInput, templateOutput, templateUpdateInput, templateIdInput, templateRenderInput, templateRenderOutput, templateValuesInput, templateValuesOutput, signatureOutput, signatureInput, sendEmailInput, sendEmailOutput } from "../templates/templates.contracts";
 import { trackingSettingsOutput, trackingFlagInput, cookieLifetimeInput, addDomainInput, trackedDomainOutput, removeDomainInput, rotateSiteIdOutput, verifyInput, verifyOutput, sourcesOutput, companyActivityInput, websiteActivityOutput, contactActivityInput } from "../tracking/tracking.contracts";
-import { workspaceOutput, memberListInput, memberListOutput, updateWorkspaceInput, setMemberRoleInput, workspaceMemberOutput } from "../workspace/workspace.contracts";
+import { workspaceOutput, memberListInput, memberListOutput, updateWorkspaceInput, workspaceProfileOutput, setMemberRoleInput, workspaceMemberOutput } from "../workspace/workspace.contracts";
 import { writeListInput, writeListOutput, draftEmailInput, writeResultOutput, createEventInput, moveEventInput, proposeTodoInput, writeIdInput } from "../writes/writes.contracts";
 import type { UsersRouter } from "../users/users.router";
 
@@ -411,6 +411,10 @@ const appRouter = t.router({
       .input(dealIdInput)
       .output(dealDetailOutput)
       .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    quoteCheckpoint: publicProcedure
+      .input(dealIdInput)
+      .output(dealQuoteCheckpointOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
     create: publicProcedure
       .input(dealCreateInput)
       .output(dealCreateOutput)
@@ -954,6 +958,9 @@ const appRouter = t.router({
     update: publicProcedure
       .input(updateWorkspaceInput)
       .output(workspaceOutput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
+    profile: publicProcedure
+      .output(workspaceProfileOutput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any),
     setMemberRole: publicProcedure
       .input(setMemberRoleInput)

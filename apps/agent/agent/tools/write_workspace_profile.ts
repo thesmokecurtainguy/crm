@@ -7,7 +7,10 @@ import {
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { currentFocus } from "../lib/focus";
-import { assertResearchPurpose } from "../lib/session-purpose";
+import {
+	assertNotEnrichment,
+	assertResearchPurpose,
+} from "../lib/session-purpose";
 import { identity } from "../lib/workspace";
 
 const line = (what: string) =>
@@ -38,6 +41,7 @@ export default defineTool({
 	}),
 	async execute(input, ctx) {
 		assertResearchPurpose(ctx);
+		assertNotEnrichment(ctx);
 		const us = await identity();
 
 		if (!us?.website) {
