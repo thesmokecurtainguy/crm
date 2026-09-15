@@ -9,16 +9,24 @@ are in `docs/setup.md`.
 `apps/agent/node_modules/eve/docs/README.md` matches the installed version;
 `.agents/skills/eve` is the skill. Guessing typechecks, builds, then misbehaves.
 
-## Model
+## Two models
 
-Default `spacexai/grok-4.1-fast-non-reasoning`; `DEFAULT_AGENT_MODEL` in
-`@crm/db/settings` because the agent and the API both need it.
+Contact enrichment and the CRM assistant use different models. They do not
+share a setting. Enrichment never starts the assistant.
 
-- **`AGENT_MODEL` wins when set.** Then Settings → General. Then the compiled default.
-  Open conversations keep their model — prompt caches are per model.
-- **Stored reasoning models do not run.** `spacexai/grok-4.20-reasoning` and other
-  `reasoning` / `multi-agent` ids fall back to the default unless `AGENT_MODEL` is set.
-- **`lib/model.ts` always sends `modelContextWindowTokens`**; eve never inherits it.
+- **Enrichment** (`identify` / `recheck` / `meeting-prep`) uses
+  `spacexai/grok-4.1-fast-non-reasoning` (`DEFAULT_ENRICHMENT_MODEL`).
+  Override with `AGENT_ENRICHMENT_MODEL`. Settings and `AGENT_MODEL` do not
+  apply. Reasoning ids fall back to the cheap default.
+- **CRM assistant** (chat, drafts, deal help, company-profile) uses
+  `spacexai/grok-4.20-non-reasoning` (`DEFAULT_AGENT_MODEL`).
+  `AGENT_MODEL` wins when set. Then Settings → General. Then the compiled
+  default. Open conversations keep their model — prompt caches are per model.
+- **Stored reasoning models do not run** on the assistant unless `AGENT_MODEL`
+  is set. `spacexai/grok-4.20-reasoning` and other `reasoning` / `multi-agent`
+  ids fall back to `DEFAULT_AGENT_MODEL`.
+- **`lib/model.ts` picks the model from session purpose.** Enrichment sessions
+  set `purpose=enrichment`. The assistant never inherits the enrichment model.
 - **A failed read logs and keeps the compiled fallback.** Never throws.
 - **The chooser offers only non-reasoning `tool-use` models** (`ModelCatalogService`).
 - **Not a frontier model, deliberately** — refusing wrong answers is enforced by the
@@ -54,7 +62,9 @@ bun run --filter=agent enrich -- --contact CONTACT_ID
 
 One request accepts at most 10 ids. The same contact is not queued again for
 two minutes. Dispatch starts at most one identify / recheck / meeting-prep
-session at a time.
+session at a time. The cheap enrichment session writes contact fields only.
+It cannot draft, plan, or start the CRM assistant. A Chief of Staff or other
+assistant must not call this endpoint on its own.
 
 ## Pictures are copied, never linked
 

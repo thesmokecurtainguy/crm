@@ -21,6 +21,7 @@ import {
 	sendSlackMessage,
 } from "../agent/lib/run-runtime";
 import {
+	assertNotEnrichment,
 	assertResearchPurpose,
 	attribute,
 	purposeOf,
@@ -156,6 +157,29 @@ describe("session purpose boundaries", () => {
 	it("rejects research writes from builder and team-agent sessions", () => {
 		expect(() => assertResearchPurpose(context("builder"))).toThrow();
 		expect(() => assertResearchPurpose(context("team-agent"))).toThrow();
+	});
+
+	it("treats identify tasks as enrichment, not assistant work", () => {
+		const identify = {
+			session: {
+				auth: {
+					current: { attributes: { taskKind: "identify" } },
+					initiator: { attributes: {} },
+				},
+			},
+		};
+		expect(purposeOf(identify)).toBe("enrichment");
+		expect(() => assertResearchPurpose(identify)).not.toThrow();
+		expect(() => assertNotEnrichment(identify)).toThrow();
+		expect(() => assertNotEnrichment(context())).not.toThrow();
+	});
+
+	it("keeps enrichment from calling the assistant write tools", async () => {
+		const source = await Bun.file(
+			new URL("../agent/tools/draft_email.ts", import.meta.url),
+		).text();
+
+		expect(source).toContain("assertNotEnrichment");
 	});
 
 	it("leaves the read-only deal list open to the assistant chat that is told to use it", async () => {

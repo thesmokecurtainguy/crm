@@ -138,6 +138,14 @@ export class EnvironmentVariables {
 	@IsOptional()
 	@IsString()
 	AGENT_MODEL_CONTEXT_WINDOW?: string;
+
+	@IsOptional()
+	@IsString()
+	AGENT_ENRICHMENT_MODEL?: string;
+
+	@IsOptional()
+	@IsString()
+	AGENT_ENRICHMENT_MODEL_CONTEXT_WINDOW?: string;
 }
 
 export type RawEnvironment = Record<string, string | undefined>;

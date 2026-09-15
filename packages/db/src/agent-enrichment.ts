@@ -10,6 +10,7 @@ export type ContactEnrichmentKind = (typeof CONTACT_ENRICHMENT_KINDS)[number];
 
 export const ENRICHMENT = {
 	auto: { env: "AUTO_CONTACT_ENRICHMENT" },
+	model: { env: "AGENT_ENRICHMENT_MODEL" },
 	identify: { budget: 4 },
 	onDemand: { maxContacts: 10, standDownMs: 2 * MINUTE_MS },
 } as const;

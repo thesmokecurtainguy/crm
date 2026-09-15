@@ -7,9 +7,14 @@ import {
 
 export const SETTINGS_ID = "app";
 
-export const DEFAULT_AGENT_MODEL = {
+export const DEFAULT_ENRICHMENT_MODEL = {
 	id: "spacexai/grok-4.1-fast-non-reasoning",
 	contextWindowTokens: 1_000_000,
+} as const;
+
+export const DEFAULT_AGENT_MODEL = {
+	id: "spacexai/grok-4.20-non-reasoning",
+	contextWindowTokens: 2_000_000,
 } as const;
 
 export const EXPENSIVE_REASONING_MODELS = [
@@ -79,6 +84,49 @@ export function agentModelFromEnv(
 				? parsedWindow
 				: DEFAULT_AGENT_MODEL.contextWindowTokens,
 	};
+}
+
+export function resolveEnrichmentModel(input: {
+	envModel?: string | null;
+	envContextWindow?: number | null;
+}): AgentModelSetting {
+	const envId = input.envModel?.trim();
+	if (envId && !isExpensiveReasoningModel(envId)) {
+		return {
+			id: envId,
+			contextWindowTokens:
+				input.envContextWindow ?? DEFAULT_ENRICHMENT_MODEL.contextWindowTokens,
+			isDefault: false,
+		};
+	}
+
+	return { ...DEFAULT_ENRICHMENT_MODEL, isDefault: true };
+}
+
+export function enrichmentModelFromEnv(
+	env: NodeJS.ProcessEnv = process.env,
+): Pick<AgentModelSetting, "id" | "contextWindowTokens"> | null {
+	const envModel = env.AGENT_ENRICHMENT_MODEL?.trim();
+	if (!envModel) return null;
+
+	const parsedWindow = Number(env.AGENT_ENRICHMENT_MODEL_CONTEXT_WINDOW);
+	return {
+		id: envModel,
+		contextWindowTokens:
+			Number.isFinite(parsedWindow) && parsedWindow > 0
+				? parsedWindow
+				: DEFAULT_ENRICHMENT_MODEL.contextWindowTokens,
+	};
+}
+
+export function readEnrichmentModel(
+	env: NodeJS.ProcessEnv = process.env,
+): AgentModelSetting {
+	const fromEnv = enrichmentModelFromEnv(env);
+	return resolveEnrichmentModel({
+		envModel: fromEnv?.id,
+		envContextWindow: fromEnv?.contextWindowTokens,
+	});
 }
 
 export async function readAgentModel(db: Db): Promise<AgentModelSetting> {

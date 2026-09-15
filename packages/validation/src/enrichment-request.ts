@@ -1,7 +1,8 @@
-import { ENRICHMENT } from "@crm/db/agent-enrichment";
 import { z } from "zod";
 
 const contactId = z.string().trim().min(1).max(120);
+
+const MAX_ON_DEMAND_CONTACTS = 10;
 
 export const requestedEnrichmentPayload = z.object({
 	requested: z.literal(true),
@@ -14,10 +15,7 @@ export type RequestedEnrichmentPayload = z.infer<
 export const enrichContactRequest = z
 	.object({
 		contactId: contactId.optional(),
-		contactIds: z
-			.array(contactId)
-			.max(ENRICHMENT.onDemand.maxContacts)
-			.optional(),
+		contactIds: z.array(contactId).max(MAX_ON_DEMAND_CONTACTS).optional(),
 	})
 	.transform((value, ctx) => {
 		const ids = [

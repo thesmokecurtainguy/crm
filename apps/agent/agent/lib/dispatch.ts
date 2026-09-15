@@ -2,6 +2,7 @@ import { EnrichmentStatus } from "@crm/db";
 import {
 	autoContactEnrichmentEnabled,
 	CONTACT_ENRICHMENT_KINDS,
+	isContactEnrichmentKind,
 } from "@crm/db/agent-enrichment";
 import { fieldBackfillPayload } from "@crm/validation/field-backfill";
 import { z } from "zod";
@@ -10,8 +11,8 @@ import { brandOutcome, runBrand } from "./brand";
 import { queueEventAgentRuns } from "./custom-agent-dispatch";
 import { settledWithin } from "./deadline";
 import { DISPATCH } from "./dispatch-config";
-import { skipUnrequestedContactEnrichment } from "./enrichment-gate";
 import { markRunning, settle } from "./enrichment";
+import { skipUnrequestedContactEnrichment } from "./enrichment-gate";
 import { collapsing, runLimited } from "./pool";
 import { runPortrait } from "./portrait";
 import { runSlackChannelJoin } from "./slack-join-task";
@@ -279,6 +280,7 @@ export function taskAuth(task: LeasedTask, base: AppAuth = APP_AUTH): AppAuth {
 			taskKind: task.kind,
 			reason: task.reason,
 			budget: String(task.budget),
+			...(isContactEnrichmentKind(task.kind) ? { purpose: "enrichment" } : {}),
 			...records,
 		},
 	};

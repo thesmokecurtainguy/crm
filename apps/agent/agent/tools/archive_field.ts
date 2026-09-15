@@ -2,6 +2,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { sensitiveWrite } from "../lib/approval";
 import { archiveField } from "../lib/fields";
+import { assertNotEnrichment } from "../lib/session-purpose";
 
 export default defineTool({
 	description:
@@ -13,7 +14,8 @@ export default defineTool({
 	approval: sensitiveWrite(
 		"Say which field you would archive and let a rep do it from the Fields sheet.",
 	),
-	async execute(input) {
+	async execute(input, ctx) {
+		assertNotEnrichment(ctx);
 		return archiveField(input);
 	},
 });

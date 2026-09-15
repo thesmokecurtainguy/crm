@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
 	DEFAULT_AGENT_MODEL,
+	DEFAULT_ENRICHMENT_MODEL,
 	isExpensiveReasoningModel,
 	resolveAgentModel,
+	resolveEnrichmentModel,
 } from "../src/settings";
 
 describe("isExpensiveReasoningModel", () => {
@@ -16,11 +18,15 @@ describe("isExpensiveReasoningModel", () => {
 		expect(isExpensiveReasoningModel("spacexai/grok-4.5")).toBe(true);
 	});
 
-	it("allows the cheap non-reasoning default", () => {
+	it("allows the cheap enrichment default and the assistant default", () => {
+		expect(isExpensiveReasoningModel(DEFAULT_ENRICHMENT_MODEL.id)).toBe(false);
 		expect(isExpensiveReasoningModel(DEFAULT_AGENT_MODEL.id)).toBe(false);
 		expect(
 			isExpensiveReasoningModel("spacexai/grok-4.1-fast-non-reasoning"),
 		).toBe(false);
+		expect(isExpensiveReasoningModel("spacexai/grok-4.20-non-reasoning")).toBe(
+			false,
+		);
 	});
 });
 
@@ -58,5 +64,39 @@ describe("resolveAgentModel", () => {
 			contextWindowTokens: 200_000,
 			isDefault: false,
 		});
+	});
+});
+
+describe("resolveEnrichmentModel", () => {
+	it("uses the cheap default when env is empty", () => {
+		expect(resolveEnrichmentModel({})).toEqual({
+			...DEFAULT_ENRICHMENT_MODEL,
+			isDefault: true,
+		});
+	});
+
+	it("ignores a reasoning env id", () => {
+		expect(
+			resolveEnrichmentModel({
+				envModel: "spacexai/grok-4.20-reasoning",
+			}),
+		).toEqual({ ...DEFAULT_ENRICHMENT_MODEL, isDefault: true });
+	});
+
+	it("keeps a cheap env override", () => {
+		expect(
+			resolveEnrichmentModel({
+				envModel: "spacexai/grok-4.1-fast-non-reasoning",
+				envContextWindow: 1_000_000,
+			}),
+		).toEqual({
+			id: "spacexai/grok-4.1-fast-non-reasoning",
+			contextWindowTokens: 1_000_000,
+			isDefault: false,
+		});
+	});
+
+	it("does not follow the CRM assistant model", () => {
+		expect(DEFAULT_ENRICHMENT_MODEL.id).not.toBe(DEFAULT_AGENT_MODEL.id);
 	});
 });

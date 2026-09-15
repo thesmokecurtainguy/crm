@@ -27,9 +27,9 @@ import {
 	drainAll,
 	taskAuth,
 } from "../lib/dispatch";
-import { queueRequestedIdentify } from "../lib/enrichment-gate";
 import { DISPATCH } from "../lib/dispatch-config";
 import { settle } from "../lib/enrichment";
+import { queueRequestedIdentify } from "../lib/enrichment-gate";
 import { finishRun, runResultOf } from "../lib/run-runtime";
 import { attribute } from "../lib/session-purpose";
 import { createSlackChannel } from "../lib/slack-membership";
@@ -221,55 +221,58 @@ export default defineChannel({
 				: Response.json({ channel: outcome });
 		}),
 
-		POST("/internal/crm/enrich-contact", async (request, { send, waitUntil }) => {
-			if (!authorised(request)) {
-				return new Response("Unauthorized", { status: 401 });
-			}
+		POST(
+			"/internal/crm/enrich-contact",
+			async (request, { send, waitUntil }) => {
+				if (!authorised(request)) {
+					return new Response("Unauthorized", { status: 401 });
+				}
 
-			const parsed = enrichContactRequest.safeParse(
-				await request.json().catch(() => null),
-			);
-			if (!parsed.success) {
-				return Response.json(
-					{ error: "Send one contact id, or a short list of contact ids." },
-					{ status: 400 },
+				const parsed = enrichContactRequest.safeParse(
+					await request.json().catch(() => null),
 				);
-			}
+				if (!parsed.success) {
+					return Response.json(
+						{ error: "Send one contact id, or a short list of contact ids." },
+						{ status: 400 },
+					);
+				}
 
-			const queued: string[] = [];
-			const already: string[] = [];
-			const missing: string[] = [];
-			const recent: string[] = [];
+				const queued: string[] = [];
+				const already: string[] = [];
+				const missing: string[] = [];
+				const recent: string[] = [];
 
-			for (const contactId of parsed.data.contactIds) {
-				const outcome = await queueRequestedIdentify(
-					contactId,
-					"An operator asked for a fresh look",
-				);
-				if (outcome === "queued") queued.push(contactId);
-				if (outcome === "already") already.push(contactId);
-				if (outcome === "missing") missing.push(contactId);
-				if (outcome === "recent") recent.push(contactId);
-			}
+				for (const contactId of parsed.data.contactIds) {
+					const outcome = await queueRequestedIdentify(
+						contactId,
+						"An operator asked for a fresh look",
+					);
+					if (outcome === "queued") queued.push(contactId);
+					if (outcome === "already") already.push(contactId);
+					if (outcome === "missing") missing.push(contactId);
+					if (outcome === "recent") recent.push(contactId);
+				}
 
-			if (queued.length > 0) {
-				waitUntil(
-					drainAll((task) =>
-						send(brief(task), {
-							auth: taskAuth(task),
-							continuationToken: taskToken(task.id),
-						}),
-					),
-				);
-			}
+				if (queued.length > 0) {
+					waitUntil(
+						drainAll((task) =>
+							send(brief(task), {
+								auth: taskAuth(task),
+								continuationToken: taskToken(task.id),
+							}),
+						),
+					);
+				}
 
-			return Response.json({
-				queued,
-				already,
-				missing,
-				recent,
-			});
-		}),
+				return Response.json({
+					queued,
+					already,
+					missing,
+					recent,
+				});
+			},
+		),
 
 		POST("/internal/crm/verify-key", async (request) => {
 			if (!authorised(request)) {

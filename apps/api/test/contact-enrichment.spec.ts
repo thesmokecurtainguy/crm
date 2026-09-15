@@ -50,9 +50,7 @@ afterAll(async () => {
 
 describe("automatic contact enrichment", () => {
 	it("does not queue identify when the flag is off", async () => {
-		expect(await agent.contactCreated(contactId, "Added by a rep")).toBe(
-			false,
-		);
+		expect(await agent.contactCreated(contactId, "Added by a rep")).toBe(false);
 
 		expect(
 			await db.agentTask.count({

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	autoContactEnrichmentEnabled,
+	ENRICHMENT,
 	isContactEnrichmentKind,
 	isRequestedEnrichmentPayload,
 } from "../src/agent-enrichment";
@@ -44,5 +45,9 @@ describe("contact enrichment kinds", () => {
 		expect(isContactEnrichmentKind("recheck")).toBe(true);
 		expect(isContactEnrichmentKind("meeting-prep")).toBe(true);
 		expect(isContactEnrichmentKind("brand")).toBe(false);
+	});
+
+	it("caps an on-demand request at ten contacts", () => {
+		expect(ENRICHMENT.onDemand.maxContacts).toBe(10);
 	});
 });

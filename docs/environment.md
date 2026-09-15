@@ -116,8 +116,10 @@ single place that knows what is set.
 | `BLOB_READ_WRITE_TOKEN` | Mirrors logos and photos into Blob |
 | `AI_GATEWAY_API_KEY` | The model. Not needed on Vercel (OIDC) |
 | `AGENT_BRIDGE_SECRET` | The rep-facing Agent panel — see `agent.md` |
-| `AGENT_MODEL` | Overrides the Settings model. Default is `spacexai/grok-4.1-fast-non-reasoning` |
+| `AGENT_MODEL` | Overrides the Settings CRM-assistant model. Default is `spacexai/grok-4.20-non-reasoning` |
 | `AGENT_MODEL_CONTEXT_WINDOW` | Context window for `AGENT_MODEL` when the catalog is not read |
+| `AGENT_ENRICHMENT_MODEL` | Contact-enrichment model. Default is `spacexai/grok-4.1-fast-non-reasoning` |
+| `AGENT_ENRICHMENT_MODEL_CONTEXT_WINDOW` | Context window for `AGENT_ENRICHMENT_MODEL` |
 | `AUTO_CONTACT_ENRICHMENT` | `"1"` or `"true"` turns on auto identify / recheck / meeting-prep. Off by default |
 
 `BLOB_READ_WRITE_TOKEN` is also in `env.validation.ts` and `apps/api/turbo.json`

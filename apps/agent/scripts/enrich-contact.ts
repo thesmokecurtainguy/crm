@@ -35,9 +35,7 @@ const response = await fetch(`${base}/internal/crm/enrich-contact`, {
 		"content-type": "application/json",
 	},
 	body: JSON.stringify(
-		contactIds.length === 1
-			? { contactId: contactIds[0] }
-			: { contactIds },
+		contactIds.length === 1 ? { contactId: contactIds[0] } : { contactIds },
 	),
 });
 

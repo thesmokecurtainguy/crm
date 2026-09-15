@@ -16,7 +16,7 @@ void syncVersion();
 export default defineAgent({
 	model: defineDynamic({
 		fallback: DEFAULT_AGENT_MODEL.id,
-		events: { "session.started": () => selectedModel() },
+		events: { "session.started": (_event, ctx) => selectedModel(ctx) },
 	}),
 	limits: AGENT.limits,
 });
